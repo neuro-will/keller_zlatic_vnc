@@ -68,7 +68,8 @@ def color_grp_vars(var_strs: Sequence, colors: np.ndarray = None, c_map: str = '
 
     Args:
 
-        var_strs: The variable names of the format group_*.
+        var_strs: The variable names of the format group_*.  If there is no underscore in a string, the entire the
+        string will be taked as the string
 
         colors: The colors to assign to groups.  colors[i,:] will be assigned to the i^th group discovered in var_strs.
         If none, colors will be pulled from a color map.
@@ -83,7 +84,7 @@ def color_grp_vars(var_strs: Sequence, colors: np.ndarray = None, c_map: str = '
     n_strs = len(var_strs)
 
     # Get the group prefixes for each string
-    re_str = re.compile(r".*_")
+    re_str = re.compile(r".*_|.*")
     prefixes = [re_str.search(s).group(0) for s in var_strs]
 
     # See how many unique prefixes there are
