@@ -12,7 +12,8 @@ import numpy as np
 import pandas as pd
 
 
-def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, enc_subjects: bool = False):
+def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, enc_subjects: bool = False,
+                       enc_beh_interactions: bool = False):
     """ Generates one-hot representation of data in tables produced by data_processing.produce_table_of_extracted data.
 
     Args:
@@ -23,6 +24,8 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
         beh_after: A list of after behaviors to encode
 
         enc_subjects: True if subject id should be encoded
+
+        enc_beh_interactions: True if interaction terms between before and after behavior should be encoded
 
     """
 
@@ -48,6 +51,28 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
             beh_after_enc[:, b_i][table['beh_after'] == beh_after[b_i]] = True
             var_strs.append('beh_after_' + beh_after[b_i])
         encoding = np.concatenate([encoding, beh_after_enc], axis=1)
+
+    # Process interaction terms
+    if enc_beh_interactions:
+        n_before_beh = len(beh_before)
+        n_after_beh = len(beh_after)
+
+        beh_i_encoding = np.zeros([n_smps, n_before_beh*n_after_beh])
+
+        i_col = 0
+        for bb_i in range(n_before_beh):
+            before_enc = np.zeros(n_smps)
+            before_enc[table['beh_before'] == beh_before[bb_i]] = True
+
+            for ba_i in range(n_after_beh):
+                after_enc = np.zeros(n_smps)
+                after_enc[table['beh_after'] == beh_after[ba_i]] = True
+                beh_i_encoding[:, i_col] = before_enc*after_enc
+                var_strs.append('beh_interact_' + beh_before[bb_i] + beh_after[ba_i])
+
+                i_col+= 1
+
+        encoding = np.concatenate([encoding, beh_i_encoding], axis=1)
 
     # Encode subjects
     if enc_subjects:
