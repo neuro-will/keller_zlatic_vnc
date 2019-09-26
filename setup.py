@@ -22,7 +22,6 @@ setup(
 	"pyqtgraph",
 	"pyspark",
 	"scikit-image",
-    "scikit-learn",
-    "sphinx"
+        "sphinx"
     ],
 )
