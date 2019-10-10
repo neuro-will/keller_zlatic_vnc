@@ -1,7 +1,18 @@
 """ Contains tools for reading in and converting data. """
 
+import os.path
+from typing import Sequence
+import pathlib
+import pickle
+
 import numpy as np
 import pandas as pd
+
+from janelia_core.dataprocessing.dataset import ROIDataset
+from janelia_core.dataprocessing.roi import ROI
+from janelia_core.fileio.data_handlers import NDArrayHandler
+from janelia_core.fileio.exp_reader import find_images
+
 
 def produce_table_of_extracted_data(act_data: dict, annot_data: dict,
                                     before_var_name: str = 'activityPreManipulationSet',
@@ -144,7 +155,103 @@ def produce_table_of_extracted_data(act_data: dict, annot_data: dict,
     return full_data_frame
 
 
+def generate_roi_dataset(img_folder: pathlib.Path, img_ext: str, frame_rate: float,
+                         roi_dicts: Sequence[dict], metadata: dict):
+    """ Generates a dataset of ROIS extracted from whole brain videos.
 
+    Args:
 
+        img_folder: The folder containing image folders.  Each image folder should contain one
+        raw image for a time point.
+
+        img_ext: The extension of image files.  This will be used to select the correct image
+        file from an image folder if there are multiple image files present in each folder.
+
+        frame_rate: The frame rate images were processed at
+
+        roi_dicts: roi_dicts[i] contains a dictionary with information about the i^th set of extracted rois.
+        Each dictionary should contain the keys:
+
+            'group_name': The name to use for the group of rois
+
+            'roi_locs_file': The path to the .pkl file with the roi locations in it
+
+            'roi_values': A list.  Each entry in the list corresponds to a set of extracted values from
+            the rois and is a dictionary with the keys 'file': with the path the .h5 file with the extracted
+            values and 'name' with the name that should be used in the dataset ts_data dict for these values
+
+            'extra_attributes': A dictionary of extra attributes that should be saved with the group.  This
+            key can be optionally omitted.
+
+        metadata: A dictionary of metadata to save with the dataset
+
+    Raises:
+
+        RuntimeError: If the number of time points in any of the extracted ROI values does not match the number
+        of images in the dataset.
+
+        RuntimeError: If the number of ROIs in any of the extracted ROI values does not match the number of ROIs
+        in the corresponding ROI locations file.
+    """
+
+    # Find our images
+    image_names_sorted = find_images(pathlib.Path(img_folder), img_ext,
+                                     image_folder_depth=1, verbose=True)
+
+    # Convert from paths to strings - this is to ensure compatability across operating systems. Also put
+    # images paths in dictionaries - this will allow us to add additional fields to store with each
+    # image name later
+    image_names_sorted = [{'file': str(i_name)} for i_name in image_names_sorted]
+
+    # Put images into a dictionary for time stamp data
+    n_images = len(image_names_sorted)
+    image_int = 1.0/frame_rate
+    image_ts = np.asarray([image_int*i for i in range(n_images)])
+    im_dict = {'ts': image_ts, 'vls': image_names_sorted}
+
+    data_dict = {'imgs': im_dict}
+
+    # Now we process rois
+    roi_groups = dict()
+    for roi_dict in roi_dicts:
+
+        # Read in ROI locations
+        with open(roi_dict['roi_locs_file'], 'rb') as f:
+            group_rois = pickle.load(f)
+
+        group_rois = [ROI.from_dict(r) for r in group_rois]
+        n_group_rois = len(group_rois)
+
+        # Process extracted values for the rois
+        for v_dict in roi_dict['roi_values']:
+            values_folder, values_file = os.path.split(v_dict['file'])
+            values = NDArrayHandler(folder=values_folder, file_name=values_file)
+
+            # Make sure the values have the expected number of rois and time stamps
+            n_vl_ts, n_vl_rois = values[:].shape
+            if n_vl_ts != n_images:
+                raise(RuntimeError('Dataset has ' + str(n_images) + ' images but found ' +
+                                   str(n_vl_ts) + ' data points in ' + str(v_dict['file']) + '.'))
+            if n_vl_rois != n_group_rois:
+                raise(RuntimeError('Group has ' + str(n_group_rois) + ' ROIS but found ' +
+                                   str(n_vl_rois) + ' ROIS in ' + str(v_dict['file']) + '.'))
+
+            # Add ROI values to data dictionary
+            values_dict = {'ts': image_ts, 'vls': values}
+            data_dict[v_dict['name']] = values_dict
+
+        # Add the information for these rois to the roi_groups dict
+        group_ts_labels = [d['name'] for d in roi_dict['roi_values']]
+
+        if 'extra_attributes' not in roi_dict:
+            extra_attributes = dict()
+        else:
+            extra_attributes = roi_dict['extra_attributes']
+
+        roi_groups[roi_dict['group_name']] = {'rois': group_rois, 'ts_labels': group_ts_labels,
+                                              **extra_attributes}
+
+    # Create the dataset
+    return ROIDataset(ts_data=data_dict, metadata=metadata, roi_groups=roi_groups)
 
 

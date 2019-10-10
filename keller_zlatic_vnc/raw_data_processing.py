@@ -14,12 +14,13 @@ from janelia_core.fileio.exp_reader import find_images
 
 
 def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib.Path, roi_extract_opts: dict,
-                                  baseline_calc_opts: dict,
+                                  baseline_calc_opts: dict, extract_params: dict,
                                   img_file_ext: str = 'weightFused.TimeRegistration.templateSpace.klb',
                                   new_comp: bool = False, sc:pyspark.SparkContext = None,
                                   roi_vl_file_name: str = 'extracted_f.h5',
                                   roi_desc_file_name: str = 'roi_locs.pkl',
-                                  baseline_file_name: str = 'baseline_f.h5'):
+                                  baseline_file_name: str = 'baseline_f.h5',
+                                  extract_params_file_name: str = 'extraction_params.pkl'):
     """ Pipeline to go from videos to supervoxel extraced F and baseline F for Keller/Zlatic vnc data.
 
     This function will:
@@ -49,6 +50,9 @@ def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib
         baseline_calc_opts: A dictionary of options to pass to percentile_filter_multi_d to calculate baselines.
         Must include window_length, filter_start, write_offset, p, and n_processes.
 
+        extract_params: A dictionary with parameters that were used for extraction - these will be saved with the
+        data to have a record of the settings that were used
+
         image_ext: The extension for the type of image files to load.
 
         new_comp: If False, any intermediate results that are found will be used.  If true,
@@ -64,6 +68,8 @@ def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib
                             will be saved.
 
         baseline_file_name: The name of the hdf5 file where the calculated baseline of rois will be saved
+
+        extract_params_file_name: The name of the pickle file that extraction parameters should be saved in
 
     """
 
@@ -133,4 +139,11 @@ def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib
         # Save extracted baseline information
         with h5py.File(baseline_file, 'w') as f:
             f.create_dataset('data', data=baseline_vls)
+
+    # Now we save extraction parameters
+    param_save_file = save_dir / extract_params_file_name
+    with open(param_save_file, 'wb') as f:
+        pickle.dump(extract_params, f)
+
+
 
