@@ -15,7 +15,8 @@ setup(
     install_requires=[
 	"findspark",
 	"h5py",
-	"jupyter",
+        "imageio",
+        "jupyter",
 	"matplotlib",
         "numpy",
         "pandas",

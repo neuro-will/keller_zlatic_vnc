@@ -27,6 +27,15 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
 
         enc_beh_interactions: True if interaction terms between before and after behavior should be encoded
 
+    Returns:
+
+        encoding: The one hot encoded variables. Of shame n_smps*n_vars, where n_smps is the number of rows in table
+        and n_vars is the number of encoded one-hot variables.  encoding[i,:] is the one hot encoding for the i^th row
+        of table
+
+        var_strs: String representation of each variable.  var_strs[j] is the name of the variable represented in the
+        j^th column of encoding
+
     """
 
     n_smps = len(table)
@@ -131,5 +140,60 @@ def color_grp_vars(var_strs: Sequence, colors: np.ndarray = None, c_map: str = '
     return clrs
 
 
+def format_whole_brain_annots_table(table: pd.DataFrame) -> pd.DataFrame:
+    """ Formats a table of event annotations for use with the one_hot_from_table function.
+
+    Formats a table produced by the script dff_extraction.ipynb.  The purpose is to change
+    column labels and behavior annotations to make them consistent with one_hot_from_table.
+
+    Args:
+        table: The table to format
+
+    Return:
+        f_table: The formatted table
+
+    """
+
+    # Dictionary to convert column labels
+    COL_ANNOT_DICT = {'Date and sample': 'subject_id',
+                      'Precede Behavior': 'beh_before',
+                      'Succeed Behavior ': 'beh_after'}
+
+    # Dictionary to convert behavior annotations
+    BEH_ANNOT_DICT = {'forward': 'F',
+                  'quiet': 'Q',
+                  'Quiet': 'Q',
+                  'other': 'O',
+                  'others': 'O',
+                  'backward': 'B',
+                  'turn': 'T',
+                  'Forward': 'F',
+                  'hunch': 'H',
+                  'back hunch': 'BH',
+                  'forw hunch': 'FH',
+                  'forward hunch': 'FH'}
+
+    # Rename columns
+    table = table.rename(columns=COL_ANNOT_DICT)
+
+    # Relabel behaviors
+    n_events = len(table)
+    before_check = np.zeros(n_events, dtype=np.bool)
+    after_check = np.zeros(n_events, dtype=np.bool)
+
+    for from_str, to_str in BEH_ANNOT_DICT.items():
+        before_match  = table['beh_before'] == from_str
+        after_match = table['beh_after'] == from_str
+        table['beh_before'][before_match] = to_str
+        table['beh_after'][after_match] = to_str
+        before_check[before_match] = True
+        after_check[after_match] = True
+
+    if not np.all(before_check):
+        raise(RuntimeError('Unable to relabel all before behaviors.'))
+    if not np.all(after_check):
+        raise(RuntimeError('Unable to relabel all after behaviors.'))
+
+    return table
 
 
