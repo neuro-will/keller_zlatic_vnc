@@ -18,8 +18,7 @@ def produce_table_of_extracted_data(act_data: dict, annot_data: dict,
                                     before_var_name: str = 'activityPreManipulationSet',
                                     dur_var_name: str = 'activityDurManipulationSet',
                                     after_var_name: str = 'activityPostManipulationSet',
-                                    annot_var_name: str = 'transitions',
-                                    nan_neuron_id_error: bool = True) -> pd.DataFrame:
+                                    annot_var_name: str = 'transitions') -> pd.DataFrame:
     """ Produces a DataFrame from extracted data original saved in MATLAB format.
 
     This function is specifically for processing data originally provided by Chen Wang, with the Delta F/F values
@@ -59,7 +58,6 @@ def produce_table_of_extracted_data(act_data: dict, annot_data: dict,
 
             dff_after: The Delta F/F value after the event
 
-            nan_neuron_id_error: True if an error should be thrown if we find nan neuron id values.
     Raises:
         ValueError: If there is a different number of specimens between the different types of activity.
         ValueError: If there are different numbers of events for the different types of activity.
@@ -88,25 +86,12 @@ def produce_table_of_extracted_data(act_data: dict, annot_data: dict,
             raise(ValueError('Different number of speciments caught in activity data.'))
         if [s.shape[1] - 1 for s in act] != n_events:
             raise(ValueError('Different number of events caught in activity data.'))
-
-        if nan_neuron_id_error:
-            if np.any([np.any(np.isnan(s)) for s in act]):
-                raise(ValueError('Caught nan values in activity data.'))
-        else:
-            if np.any([np.any(np.isnan(s[:,1:])) for s in act]):
-                raise(ValueError('Caught nan values in activity data.'))
+        if np.any([np.any(np.isnan(s)) for s in act]):
+            raise(ValueError('Caught nan values in activity data.'))
 
     for b_act, d_act, a_act in zip(*act_list):
-        if nan_neuron_id_error:
-            non_nan_inds = np.arange(b_act.shape[0])
-        else:
-            non_nan_inds = np.logical_not(np.isnan(b_act[:,0]))
-
-        if (np.any(b_act[non_nan_inds, 0] != d_act[non_nan_inds, 0])) or \
-           (np.any(b_act[non_nan_inds, 0] != a_act[non_nan_inds, 0])):
+        if (np.any(b_act[:, 0] != d_act[:, 0])) or (np.any(b_act[:, 0] != a_act[:, 0])):
             raise(ValueError('Caught different neuron orders across neural activity data.'))
-
-
 
     # Run checks on annotations
     if len(annots) != n_specimens:
