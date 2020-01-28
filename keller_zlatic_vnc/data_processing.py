@@ -224,6 +224,7 @@ def generate_roi_dataset(img_folder: pathlib.Path, img_ext: str, frame_rate: flo
         # Process extracted values for the rois
         for v_dict in roi_dict['roi_values']:
             values_folder, values_file = os.path.split(v_dict['file'])
+
             values = NDArrayHandler(folder=values_folder, file_name=values_file)
 
             # Make sure the values have the expected number of rois and time stamps
@@ -249,7 +250,6 @@ def generate_roi_dataset(img_folder: pathlib.Path, img_ext: str, frame_rate: flo
 
         roi_groups[roi_dict['group_name']] = {'rois': group_rois, 'ts_labels': group_ts_labels,
                                               **extra_attributes}
-
     # Create the dataset
     return ROIDataset(ts_data=data_dict, metadata=metadata, roi_groups=roi_groups)
 
