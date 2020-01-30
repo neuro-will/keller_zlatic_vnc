@@ -20,8 +20,7 @@ You will need to obtain the source code for the janelia_core porject. Then from 
 3) From the main project directory run:
     python setup.py develop
 
-4) From the janelia_core project directory: 
-	Windows/Mac: python setup.py develop
+4) Install janelia_core by following the instructions in the README for that project. 
 
 5) Install jupyter notebook:
 	conda install jupyter
