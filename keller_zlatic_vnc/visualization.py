@@ -58,12 +58,14 @@ def gen_coef_p_vl_cmap(coef_vls: np.ndarray, p_vls: np.ndarray, n_coef_clrs: int
                                       clims=(-max_abs_coef, max_abs_coef), vllims=(max_p_vl, min_p_vl))
 
 
-def visualize_coef_p_vl_max_projs(vol: np.ndarray, cmap: MultiParamCMap, cmap_coef_range: Sequence = None,
+def visualize_coef_p_vl_max_projs(vol: np.ndarray, dim_m: np.ndarray, cmap: MultiParamCMap, cmap_coef_range: Sequence = None,
                                   cmap_p_vl_range: Sequence = None, title: str = None):
     """ Generates an image of max projections of rgb volumes of combined coefficient values and p-values.
 
     Args:
         vol: The volume to visulize.  Dimensions are [z, x, y, rgb]
+
+        dim_m: A scalar multiplier for each dimension in the order x, y, z to account for aspect ratios.
 
         cmap: The colormap used to produce the original volume.
 
@@ -100,7 +102,7 @@ def visualize_coef_p_vl_max_projs(vol: np.ndarray, cmap: MultiParamCMap, cmap_co
     min_coef_vl = np.min(coef_vls)
     max_coef_vl = np.max(coef_vls)
 
-    visualize_rgb_max_project(vol=vol, cmap_im=cmap_im,
+    visualize_rgb_max_project(vol=vol, dim_m=dim_m, cmap_im=cmap_im,
                               cmap_extent=(min_cmap_p_vl, max_cmap_p_vl, min_coef_vl, max_coef_vl),
                               cmap_xlabel='$\log(p)$', cmap_ylabel='coef vl ($\Delta F / F$)',
                               title=title)

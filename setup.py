@@ -24,6 +24,7 @@ setup(
 	"pyqtgraph",
 	"pyspark",
 	"scikit-image",
-        "sphinx"
+    "sphinx",
+    "tifffile"
     ],
 )
