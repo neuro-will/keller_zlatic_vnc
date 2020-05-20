@@ -96,6 +96,42 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
     return [encoding, var_strs]
 
 
+def reference_one_hot_to_beh(one_hot_data: np.ndarray, one_hot_vars: Sequence[str], beh: str):
+    """ Given a one hot encoding of behavioral variables, returns a one-hot encoding refereneed to a given behavior.
+
+    Args:
+
+        one_hot_data: Array of one hot data of shape n_smps*n_vars, as returned by one_hot_from_table
+
+        one_hot_vars: one_hot_vars[i] is a string with the name of the variable represented in the i^th column of
+                      one_hot_data.
+
+        beh: The behavior to reference to, e.g., 'Q'
+
+    Returns:
+
+        one_hot_data_ref: A one-hot representation of the data, referenced to the requested behavior
+
+        one_hot_vars_ref: The variable names of the columns in one_hot_data_ref
+    """
+
+    before_ind = np.argwhere([var == 'beh_before_' + beh for var in one_hot_vars])[0][0]
+    after_ind = np.argwhere([var == 'beh_after_' + beh for var in one_hot_vars])[0][0]
+
+    interact_ind = np.argwhere([var == 'beh_interact_' + beh + beh for var in one_hot_vars])
+    if len(interact_ind) > 0:
+        interact_ind = interact_ind[0][0]
+        del_inds = [before_ind, after_ind, interact_ind]
+    else:
+        del_inds = [before_ind, after_ind]
+
+    one_hot_data_ref = np.delete(one_hot_data, del_inds, axis=1)
+    one_hot_vars_ref = [one_hot_vars[i] for i in range(len(one_hot_vars))
+                        if i not in set(del_inds)]
+
+    return [one_hot_data_ref, one_hot_vars_ref]
+
+
 def color_grp_vars(var_strs: Sequence, colors: np.ndarray = None, c_map: str = 'tab10') -> list:
     """ Given a list of variables with prefixes indicating groups, this finds the groups and assigns each string a color
     based on it's group.

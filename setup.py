@@ -25,6 +25,7 @@ setup(
 	"pyspark",
 	"scikit-image",
     "sphinx",
-    "tifffile"
+    "tifffile",
+    "xlrd"
     ],
 )
