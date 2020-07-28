@@ -133,8 +133,9 @@ def generate_transition_dff_table(act_data: dict, trans: dict,
     # Run checks on neural activity
     act_list = [before_act, dur_act, after_act]
     for act in act_list:
-        if np.any([np.any(np.isnan(s)) for s in act]):
-            raise(ValueError('Caught nan values in activity data.'))
+        for s_i, s_act in enumerate(act):
+            if np.any(np.isnan(s_act[:, 1:])):
+                raise(ValueError('Caught nan values in activity data for subject ' + str(s_i) + '.'))
 
         for s_i, spec_act in enumerate(act):
             if spec_act.shape[1] - 1 != n_events[s_i]:
@@ -167,6 +168,10 @@ def generate_transition_dff_table(act_data: dict, trans: dict,
         s_n_events = subject_act[0].shape[1] - 1
 
         s_n_neurons = subject_act[0].shape[0]
+
+        #print('subject_id: ' + subject_id)
+        #print('s_n_events: ' + str(s_n_events))
+        #print('subject_trans: ' + str(subject_trans))
 
         # Generate table
         s_table = pd.DataFrame(columns=col_names)
@@ -299,7 +304,7 @@ def produce_table_of_extracted_data(act_data: dict, annot_data: dict,
                                     dur_var_name: str = 'activityDurManipulationSet',
                                     after_var_name: str = 'activityPostManipulationSet',
                                     annot_var_name: str = 'transitions') -> pd.DataFrame:
-    """ Produces a DataFrame from extracted data original saved in MATLAB format.  It is specifically for data
+    """ Produces a DataFrame from extracted data originally saved in MATLAB format.  It is specifically for data
     formats provided by Chen Wang in the early parts of the VNC project.
 
     This function is specifically for processing data originally provided by Chen Wang, with the Delta F/F values
@@ -517,3 +522,33 @@ def recode_beh(table: pd.DataFrame, col):
 
     return table_copy
     pass
+
+
+def count_unique_subjs_per_transition(table: pd.DataFrame, behs: Sequence[str] = None):
+    """ Generates a table with the number of subjects demonstrating a given transition.
+
+    Args:
+        table: The table of data, as produced by generate_transition_dff_table.
+
+        behs: List of behaviors to look for transitions between. If None, all behaviors in the table
+        will be considered.
+
+    Returns:
+        table: The table with counts of subjects for each transition.  Rows are before behavior; columns are
+        after behavior.
+    """
+
+    if behs is None:
+        behs = list(set(table['beh_before'].unique().tolist() + table['beh_after'].unique().tolist()))
+        behs.sort()
+
+    n_behs = len(behs)
+    n_subjs_per_trans = np.zeros([n_behs, n_behs])
+    for b_i, b_b in enumerate(behs):
+        for a_i, a_b in enumerate(behs):
+            trans_rows = np.logical_and((table['beh_before'] == b_b).to_numpy(),
+                                        (table['beh_after'] == a_b).to_numpy())
+            n_subjs_per_trans[b_i, a_i] = len(table[trans_rows]['subject_id'].unique())
+
+    return pd.DataFrame(n_subjs_per_trans, index=behs, columns=behs)
+

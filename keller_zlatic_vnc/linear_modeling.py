@@ -13,7 +13,7 @@ import pandas as pd
 
 
 def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, enc_subjects: bool = False,
-                       enc_beh_interactions: bool = False):
+                       enc_beh_interactions: bool = False, beh_interactions: list = None):
     """ Generates one-hot representation of data in tables produced by data_processing.produce_table_of_extracted data.
 
     Args:
@@ -25,7 +25,11 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
 
         enc_subjects: True if subject id should be encoded
 
-        enc_beh_interactions: True if interaction terms between before and after behavior should be encoded
+        enc_beh_interactions: True if all interaction terms between before and after behavior should be encoded.
+        If provided, interactions_behs must be None.
+
+        beh_interactions: A list of specific interaction terms of the form [('Q', 'F'), ...] to encode.  If provided,
+        enc_beh_interactions must be false.
 
     Returns:
 
@@ -36,7 +40,13 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
         var_strs: String representation of each variable.  var_strs[j] is the name of the variable represented in the
         j^th column of encoding
 
+    Raises:
+        ValueError: If interaction_behs are provided and enc_beh_interactions is true.
+
     """
+
+    if enc_beh_interactions is True and beh_interactions is not None:
+        raise(ValueError('enc_beh_interactions must be false if beh_interactions are provided.'))
 
     n_smps = len(table)
 
@@ -61,7 +71,7 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
             var_strs.append('beh_after_' + beh_after[b_i])
         encoding = np.concatenate([encoding, beh_after_enc], axis=1)
 
-    # Process interaction terms
+    # Process all interaction terms if we are suppose to
     if enc_beh_interactions:
         n_before_beh = len(beh_before)
         n_after_beh = len(beh_after)
@@ -83,6 +93,22 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
 
         encoding = np.concatenate([encoding, beh_i_encoding], axis=1)
 
+    if beh_interactions is not None:
+        n_interact_terms = len(beh_interactions)
+
+        beh_i_encoding = np.zeros([n_smps, n_interact_terms])
+        for bb_i in range(n_interact_terms):
+            before_enc = np.zeros(n_smps)
+            after_enc = np.zeros(n_smps)
+
+            before_enc[table['beh_before'] == beh_interactions[bb_i][0]] = True
+            after_enc[table['beh_after'] == beh_interactions[bb_i][1]] = True
+
+            beh_i_encoding[:, bb_i] = before_enc*after_enc
+            var_strs.append('beh_interact_' + beh_interactions[bb_i][0] + beh_interactions[bb_i][1])
+
+        encoding = np.concatenate([encoding, beh_i_encoding], axis=1)
+
     # Encode subjects
     if enc_subjects:
         unique_sub_ids = table['subject_id'].unique()
@@ -96,8 +122,9 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
     return [encoding, var_strs]
 
 
-def reference_one_hot_to_beh(one_hot_data: np.ndarray, one_hot_vars: Sequence[str], beh: str):
-    """ Given a one hot encoding of behavioral variables, returns a one-hot encoding refereneed to a given behavior.
+def reference_one_hot_to_beh(one_hot_data: np.ndarray, one_hot_vars: Sequence[str], beh: str,
+                             remove_interaction_term: bool = True):
+    """ Given a one hot encoding of behavioral variables, returns a one-hot encoding referenced to a given behavior.
 
     Args:
 
@@ -115,15 +142,31 @@ def reference_one_hot_to_beh(one_hot_data: np.ndarray, one_hot_vars: Sequence[st
         one_hot_vars_ref: The variable names of the columns in one_hot_data_ref
     """
 
-    before_ind = np.argwhere([var == 'beh_before_' + beh for var in one_hot_vars])[0][0]
-    after_ind = np.argwhere([var == 'beh_after_' + beh for var in one_hot_vars])[0][0]
-
-    interact_ind = np.argwhere([var == 'beh_interact_' + beh + beh for var in one_hot_vars])
-    if len(interact_ind) > 0:
-        interact_ind = interact_ind[0][0]
-        del_inds = [before_ind, after_ind, interact_ind]
+    before_match = np.argwhere([var == 'beh_before_' + beh for var in one_hot_vars])
+    if len(before_match) > 0:
+        before_ind = [before_match[0][0]]
     else:
-        del_inds = [before_ind, after_ind]
+        before_ind = []
+
+    after_match = np.argwhere([var == 'beh_after_' + beh for var in one_hot_vars])
+    if len(after_match) > 0:
+        after_ind = [after_match[0][0]]
+    else:
+        after_ind = []
+
+    if remove_interaction_term:
+        interact_match = np.argwhere([var == 'beh_interact_' + beh + beh for var in one_hot_vars])
+        if len(interact_match) > 0:
+            interact_ind = [interact_match[0][0]]
+        else:
+            interact_ind = []
+        print('interact_ind: ' + str(interact_ind))
+    else:
+        interact_ind = []
+
+    del_inds = before_ind + after_ind + interact_ind
+
+    print('del_inds: ' + str(del_inds))
 
     one_hot_data_ref = np.delete(one_hot_data, del_inds, axis=1)
     one_hot_vars_ref = [one_hot_vars[i] for i in range(len(one_hot_vars))
@@ -232,4 +275,39 @@ def format_whole_brain_annots_table(table: pd.DataFrame) -> pd.DataFrame:
 
     return table
 
+
+def order_and_color_interaction_terms(terms: Sequence[str], colors: dict = None, sort_by_before: bool = True):
+    """ Produces an ordering that sorts interaction terms by behavior before or after manipulation and a color key.
+
+    Colors are assigned to the terms so all terms starting (or optionally finishing) with the same behavior are
+    assigned the same color.
+
+    Args:
+        terms: The interaction terms - two letter strings with the first letter indicating the behavior before the
+        the manipulation and the second indicating the behavior after the manipulation.
+
+        colors: A dictionary of colors to associate with each behavior.  Keys are letters indicating behaviors and
+        values are rgb values.
+
+        sort_by_before: True if we should sort interaction terms by the behavior that came before the manipulation,
+        and this should be false if we should sort by the behavior that came after.
+    """
+
+    if sort_by_before:
+        b_i = 0
+    else:
+        b_i = 1
+
+    # Get sort order
+    sort_behs = [b[b_i] for b in terms]
+    order = np.argsort(sort_behs)
+
+    # Get colors
+    n_terms = len(terms)
+    sorted_terms = [terms[i] for i in order]
+    clrs = np.zeros([n_terms, 3])
+    for t_i in range(n_terms):
+        clrs[t_i, :] = colors[sorted_terms[t_i][b_i]]
+
+    return [order, clrs]
 

@@ -14,6 +14,7 @@ setup(
     long_description = long_description,
     install_requires=[
 	"findspark",
+	"fpdf",
 	"h5py",
         "imageio",
         "jupyter",
