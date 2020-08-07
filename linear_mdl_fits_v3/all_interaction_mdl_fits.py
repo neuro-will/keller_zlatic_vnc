@@ -31,7 +31,7 @@ ps = dict()
 
 # ======================================================================================================================
 # Here we specify where the pdf should be saved and its name in a single path
-pdf_save_path = '/Users/williambishop/Desktop/trans_dep.pdf'
+pdf_save_path = '/Users/williambishop/Desktop/trans_dep_v2.pdf'
 
 
 # ======================================================================================================================
@@ -66,7 +66,7 @@ cut_off_times = [3.656, 9.0034]
 # Here we specify the remaining parameters, common to all analyses
 
 # Define how many subjects we need to observe a transition from to include in the model
-min_n_trans_subjs = 3
+min_n_trans_subjs = 1
 
 # Colors to assoicate with behaviors
 clrs = {'F': np.asarray([255, 128, 0])/255,
