@@ -24,6 +24,43 @@ BEHAVIOR_CODES = {'Q': ['Quiet', 'quiet'],
                   'P': ['Back Hunch', 'back hunch']}
 
 
+# Dictionary defining A00c segment codes
+A00C_SEG_CODES = {1: 'antL',
+                  2: 'antR',
+                  3: 'midL',
+                  4: 'midR',
+                  5: 'postL',
+                  6: 'postR'}
+
+# Dictionary defining Handle segment codes
+HANDLE_SEG_CODES = {1: 'T1',
+                    2: 'T2',
+                    3: 'T3',
+                    4: 'A1',
+                    5: 'A2',
+                    6: 'A3',
+                    7: 'A4',
+                    8: 'A5',
+                    9: 'A6',
+                    10: 'A7',
+                    11: 'A8',
+                    12: 'A9'}
+
+# Dictionary defining basin segment codes
+BASIN_SEG_CODES = {1: 'T1 L+R',
+                   2: 'T2 L+R',
+                   3: 'T3 L+R',
+                   4: 'A1 L+R',
+                   5: 'A2 L+R',
+                   6: 'A3 L+R',
+                   7: 'A4 L+R',
+                   8: 'A5 L+R',
+                   9: 'A6 L+R',
+                   10: 'A7 L+R',
+                   11: 'A8 L+R',
+                   12: 'A9 L+R'}
+
+
 def extract_transitions(raw_trans_table: pd.DataFrame, cutoff_time:float = np.inf) -> dict:
     """ Calculates new behavior transitions, using a cutoff time for behaviors after the stimulus.
 

@@ -17,10 +17,8 @@ from keller_zlatic_vnc.data_processing import extract_transitions
 from keller_zlatic_vnc.data_processing import generate_transition_dff_table
 from keller_zlatic_vnc.data_processing import read_raw_transitions_from_excel
 from keller_zlatic_vnc.data_processing import recode_beh
+from keller_zlatic_vnc.data_processing import A00C_SEG_CODES, BASIN_SEG_CODES, HANDLE_SEG_CODES
 from keller_zlatic_vnc.linear_modeling import one_hot_from_table
-from keller_zlatic_vnc.linear_modeling import order_and_color_interaction_terms
-from keller_zlatic_vnc.linear_modeling import reference_one_hot_to_beh
-
 
 from janelia_core.stats.regression import grouped_linear_regression_ols_estimator
 from janelia_core.stats.regression import grouped_linear_regression_acm_stats
@@ -34,17 +32,17 @@ ps = dict()
 
 # ======================================================================================================================
 # Here we specify where the pdf should be saved and its name in a single path
-pdf_save_path = '/Users/williambishop/Desktop/after_reporting_v2.pdf'
+pdf_save_path = '/Users/bishopw/Desktop/results/decision_dependence_other_ref_by_segment.pdf'
 
 
 # ======================================================================================================================
 # Here we specify a path to a folder we can use for saving temporary files (images)
-temp_folder = '/Users/williambishop/Desktop/temp'
+temp_folder = '/Users/bishopw/Desktop/other_dep_temp'
 
 # ======================================================================================================================
 # Here we specify the location of the data
 
-data_folder = r'/Users/williambishop/Desktop/extracted_dff_v2'
+data_folder = r'/Users/bishopw/Documents/Janelia_Research/Projects/keller_zlatic_vnc/data/extracted_dff_v2'
 transition_file = 'transition_list.xlsx'
 
 a00c_a4_act_data_file = 'A00c_activity_A4.mat'
@@ -60,11 +58,12 @@ handle_a9_act_data_file = 'Handle_activity_A9.mat'
 # Here we specify the type of testing we will do.  Options are:
 #
 #   state_dependence - tests if dff after manipulation is sensitive to behavior before
-#   decision_dependence - tests if dff before manipulation is sensitive to behavior after
+#   prediction_dependence - tests if dff before manipulation is sensitive to behavior after
+#   decision_dependence - tests if dff during manipulation is sensitive to behavior after
 #   before_reporting - tests if dff before manipulation is sensitive to behavior before
 #   after_reporting - tests if dff after manipulation is sensitive to behavior after
 #
-test_type = 'after_reporting'
+test_type = 'decision_dependence'
 
 # ======================================================================================================================
 # Here, we specify the different ways we want to filter the data when fitting models.  We will produce results for all
@@ -78,8 +77,36 @@ cell_types = [('a00c', 'all'),
               ('basin', [7]),
               ('basin', [12])]
 
+cell_types = [('a00c', [1, 2]),
+              ('a00c', [3, 4]),
+              ('a00c', [5, 6]),
+              ('handle', [1]),
+              ('handle', [2]),
+              ('handle', [3]),
+              ('handle', [4]),
+              ('handle', [5]),
+              ('handle', [6]),
+              ('handle', [7]),
+              ('handle', [8]),
+              ('handle', [9]),
+              ('handle', [10]),
+              ('handle', [11]),
+              ('handle', [12]),
+              ('basin', [1]),
+              ('basin', [2]),
+              ('basin', [3]),
+              ('basin', [4]),
+              ('basin', [5]),
+              ('basin', [6]),
+              ('basin', [7]),
+              ('basin', [8]),
+              ('basin', [9]),
+              ('basin', [10]),
+              ('basin', [11]),
+              ('basin', [12])]
+
 manip_types = ['A4', 'A9', 'A4+A9']
-cut_off_times = [3.656, 9.0034]
+cut_off_times = [3.656, 9.0034, np.inf]
 
 # Min number of subjects which must display a test behavior to include it in testing
 min_n_subjects_per_beh = 3
@@ -112,16 +139,19 @@ raw_trans = recode_beh(raw_trans, 'Beh After')
 
 for cell_type, cell_ids in cell_types:
 
-    # Read in the neural activity for the specified cell type
+    # Read in the neural activity for the specified cell type and specify the segment codes to use
     if cell_type == 'a00c':
         a4_act_file = a00c_a4_act_data_file
         a9_act_file = a00c_a9_act_data_file
+        seg_codes = A00C_SEG_CODES
     elif cell_type == 'basin':
         a4_act_file = basin_a4_act_data_file
         a9_act_file = basin_a9_act_data_file
+        seg_codes = BASIN_SEG_CODES
     elif cell_type == 'handle':
         a4_act_file = handle_a4_act_data_file
         a9_act_file = handle_a9_act_data_file
+        seg_codes = HANDLE_SEG_CODES
     else:
         raise (ValueError('The cell type ' + cell_type + ' is not recogonized.'))
 
@@ -171,7 +201,8 @@ for cell_type, cell_ids in cell_types:
             if (test_type == 'state_dependence') or (test_type == 'before_reporting'):
                 after_beh_th = 0
                 before_beh_th = min_n_subjects_per_beh
-            elif (test_type == 'decision_dependence') or (test_type == 'after_reporting'):
+            elif ((test_type == 'prediction_dependence') or (test_type == 'after_reporting')
+                  or (test_type == 'decision_dependence')):
                 after_beh_th = min_n_subjects_per_beh
                 before_beh_th = 0
             else:
@@ -186,9 +217,12 @@ for cell_type, cell_ids in cell_types:
             if (test_type == 'state_dependence') or (test_type == 'after_reporting'):
                 dff = data['dff_after'].to_numpy()
                 print('Extracting dff after the manipulation.')
-            elif (test_type == 'decision_dependence') or (test_type == 'before_reporting'):
+            elif (test_type == 'prediction_dependence') or (test_type == 'before_reporting'):
                 dff = data['dff_before'].to_numpy()
                 print('Extracting dff before the manipulation.')
+            elif test_type == 'decision_dependence':
+                dff = data['dff_during'].to_numpy()
+                print('Extracting dff during the manipulation.')
             else:
                 raise(ValueError('The test_type ' + test_type + ' is not recognized.'))
 
@@ -203,7 +237,8 @@ for cell_type, cell_ids in cell_types:
                 test_behs = before_behs
                 control_behs = after_behs
                 print('Setting test behaviors to those before the manipulation.')
-            elif (test_type == 'decision_dependence') or (test_type == 'after_reporting'):
+            elif ((test_type == 'prediction_dependence') or (test_type == 'after_reporting') or
+                  (test_type == 'decision_dependence')):
                 test_behs = after_behs
                 control_behs = before_behs
                 print('Setting test behaviors to those after the manipulation.')
@@ -212,6 +247,7 @@ for cell_type, cell_ids in cell_types:
 
             control_behs_ref = list(set(control_behs).difference(beh_ref))
 
+            test_behs = sorted(test_behs)
             n_test_behs = len(test_behs)
             test_betas = np.zeros(n_test_behs)
             test_c_ints = np.zeros([2, n_test_behs])
@@ -220,7 +256,8 @@ for cell_type, cell_ids in cell_types:
                 if (test_type == 'state_dependence') or (test_type == 'before_reporting'):
                     one_hot_data_ref, one_hot_vars_ref = one_hot_from_table(data, beh_before=[b], beh_after=control_behs_ref)
                     pull_ind = 0
-                elif (test_type == 'decision_dependence') or (test_type == 'after_reporting'):
+                elif ((test_type == 'prediction_dependence') or (test_type == 'after_reporting') or
+                      (test_type == 'decision_dependence')):
                     one_hot_data_ref, one_hot_vars_ref = one_hot_from_table(data, beh_before=control_behs_ref, beh_after=[b])
                     pull_ind = len(one_hot_vars_ref)-1
                 else:
@@ -230,15 +267,18 @@ for cell_type, cell_ids in cell_types:
                 one_hot_vars_ref = one_hot_vars_ref + ['ref']
 
                 _, v, _ = np.linalg.svd(one_hot_data_ref)
-                if np.min(v) < .001:
-                    raise (RuntimeError('regressors are nearly co-linear'))
+                if not np.min(v) < .001:
 
-                beta, acm, n_gprs = grouped_linear_regression_ols_estimator(x=one_hot_data_ref, y=dff, g=g)
-                stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_gprs, alpha=alpha)
+                    beta, acm, n_gprs = grouped_linear_regression_ols_estimator(x=one_hot_data_ref, y=dff, g=g)
+                    stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_gprs, alpha=alpha)
 
-                test_betas[b_i] = beta[pull_ind]
-                test_c_ints[:, b_i] = stats['c_ints'][:, pull_ind]
-                test_sig[b_i] = stats['non_zero'][pull_ind]
+                    test_betas[b_i] = beta[pull_ind]
+                    test_c_ints[:, b_i] = stats['c_ints'][:, pull_ind]
+                    test_sig[b_i] = stats['non_zero'][pull_ind]
+                else:
+                    test_betas[b_i] = np.nan
+                    test_c_ints[:, b_i] = np.nan
+                    test_sig[b_i] = False
 
             # Generate image of fit results
             visualize_coefficient_stats(var_strs=test_behs, theta=test_betas, c_ints=test_c_ints, sig=test_sig,
@@ -254,14 +294,21 @@ for cell_type, cell_ids in cell_types:
             plt.close()
 
             # Add page to the pdf for these results
+            if isinstance(cell_ids, list):
+                seg_strs = ''
+                for vl in cell_ids:
+                    seg_strs += seg_codes[vl] + ', '
+            else:
+                seg_strs = 'all'
             pdf.add_page()
             pdf.set_font('Arial', 'B', 16)
             pdf.cell(0, 7, cell_type, ln=1)
             pdf.set_font('Arial',  size=12)
             pdf.cell(40, 5, 'Manipulation target(s): ' + manip_type, ln=1)
-            pdf.cell(40, 5, 'Cell ids: ' + str(cell_ids), ln=1)
+            pdf.cell(40, 5, 'Cell ids: ' + seg_strs, ln=1)
             pdf.cell(40, 5, 'Test type: ' + test_type, ln=1)
             pdf.cell(40, 5, 'Cut off time: ' + str(cut_off_time) + ' seconds', ln=1)
+            pdf.cell(40, 5, 'Min number of subjects per behavior: ' + str(min_n_subjects_per_beh), ln=1)
             pdf.ln(10)
             pdf.image(str(fig_path), w=170)
 
