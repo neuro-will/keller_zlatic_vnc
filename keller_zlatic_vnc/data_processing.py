@@ -2,9 +2,10 @@
 
 import copy
 import os.path
-from typing import Sequence, Union
+from typing import Sequence, Tuple, Union
 import pathlib
 import pickle
+import re
 
 import numpy as np
 import pandas as pd
@@ -61,7 +62,7 @@ BASIN_SEG_CODES = {1: 'T1 L+R',
                    12: 'A9 L+R'}
 
 
-def extract_transitions(raw_trans_table: pd.DataFrame, cutoff_time:float = np.inf) -> dict:
+def extract_transitions(raw_trans_table: pd.DataFrame, cutoff_time:float = np.inf) -> Tuple[dict, pd.DataFrame]:
     """ Calculates new behavior transitions, using a cutoff time for behaviors after the stimulus.
 
     This function assumes that behavior in the input table has been recoded to use standard abbreviations.
@@ -74,27 +75,29 @@ def extract_transitions(raw_trans_table: pd.DataFrame, cutoff_time:float = np.in
     Returns:
         trans: A dictionary with transitions.  Keys correspond to subject ids.  Values are lists of transitions, in the
         order they were listed in the raw_trans_table. Each transition is a tuple of the form (before_beh, after_beh).
+
+        new_table: A copy of the original transition table, with updated behaviors after the manipulation
     """
 
     # Get list of unique specimen ids
-    spec_ids = raw_trans_table['Smp ID'].unique()
+    spec_ids = raw_trans_table['subject_id'].unique()
 
     # Extract transitions
     table_copy = copy.deepcopy(raw_trans_table)
 
     # Relabel behaviors after the stimulus that took too long to occur as quiet
     new_quiet_inds = table_copy['Trans Time'] > cutoff_time
-    table_copy.loc[new_quiet_inds, 'Beh After'] = 'Q'
+    table_copy.loc[new_quiet_inds, 'beh_after'] = 'Q'
 
     # Extract transitions for each specimen
     trans = dict()
     for spec_id in spec_ids:
-        spec_rows = table_copy['Smp ID'] == spec_id
-        before_beh = table_copy[spec_rows]['Beh Before']
-        after_beh = table_copy[spec_rows]['Beh After']
+        spec_rows = table_copy['subject_id'] == spec_id
+        before_beh = table_copy[spec_rows]['beh_before']
+        after_beh = table_copy[spec_rows]['beh_after']
         trans[spec_id] = [(b, a) for b, a in zip(before_beh, after_beh)]
 
-    return trans
+    return trans, table_copy
 
 
 def generate_excel_id_from_matlab_id(id: str) -> str:
@@ -237,7 +240,7 @@ def generate_transition_dff_table(act_data: dict, trans: dict,
 
 
 def generate_roi_dataset(img_folder: pathlib.Path, img_ext: str, frame_rate: float,
-                         roi_dicts: Sequence[dict], metadata: dict):
+                         roi_dicts: Sequence[dict], metadata: dict, run_checks: bool = True):
     """ Generates a dataset of ROIS extracted from whole brain videos.
 
     Args:
@@ -258,13 +261,15 @@ def generate_roi_dataset(img_folder: pathlib.Path, img_ext: str, frame_rate: flo
             'roi_locs_file': The path to the .pkl file with the roi locations in it
 
             'roi_values': A list.  Each entry in the list corresponds to a set of extracted values from
-            the rois and is a dictionary with the keys 'file': with the path the .h5 file with the extracted
+            the rois and is a dictionary with the keys 'file': with the path to the .h5 file with the extracted
             values and 'name' with the name that should be used in the dataset ts_data dict for these values
 
             'extra_attributes': A dictionary of extra attributes that should be saved with the group.  This
             key can be optionally omitted.
 
         metadata: A dictionary of metadata to save with the dataset
+
+        run_checks: If true, checks for consistency between the different sources of data that make up the dataset
 
     Raises:
 
@@ -309,14 +314,15 @@ def generate_roi_dataset(img_folder: pathlib.Path, img_ext: str, frame_rate: flo
 
             values = NDArrayHandler(folder=values_folder, file_name=values_file)
 
-            # Make sure the values have the expected number of rois and time stamps
-            n_vl_ts, n_vl_rois = values[:].shape
-            if n_vl_ts != n_images:
-                raise(RuntimeError('Dataset has ' + str(n_images) + ' images but found ' +
-                                   str(n_vl_ts) + ' data points in ' + str(v_dict['file']) + '.'))
-            if n_vl_rois != n_group_rois:
-                raise(RuntimeError('Group has ' + str(n_group_rois) + ' ROIS but found ' +
-                                   str(n_vl_rois) + ' ROIS in ' + str(v_dict['file']) + '.'))
+            if run_checks:
+                # Make sure the values have the expected number of rois and time stamps
+                n_vl_ts, n_vl_rois = values[:].shape
+                if n_vl_ts != n_images:
+                    raise(RuntimeError('Dataset has ' + str(n_images) + ' images but found ' +
+                                       str(n_vl_ts) + ' data points in ' + str(v_dict['file']) + '.'))
+                if n_vl_rois != n_group_rois:
+                    raise(RuntimeError('Group has ' + str(n_group_rois) + ' ROIS but found ' +
+                                        str(n_vl_rois) + ' ROIS in ' + str(v_dict['file']) + '.'))
 
             # Add ROI values to data dictionary
             values_dict = {'ts': image_ts, 'vls': values}
@@ -334,6 +340,39 @@ def generate_roi_dataset(img_folder: pathlib.Path, img_ext: str, frame_rate: flo
                                               **extra_attributes}
     # Create the dataset
     return ROIDataset(ts_data=data_dict, metadata=metadata, roi_groups=roi_groups)
+
+
+def match_annotation_subject_to_volume_subject(vol_subject_main_folder: str, vol_subject_sub_folder: str,
+                                               annot_subjects: Sequence[str]) -> int:
+    """ Finds annotations for a set of registered images.
+
+    Args:
+        vol_subject_main_folder: The main folder containing the registered images
+
+        vol_subject_sub_folder: The sub folder containing the registered images
+
+        annot_subjects: List of subject ids we have annotations for.
+
+    Returns:
+        ind: The index into annot_subjects for the annotations corresponding to the registered images.  If no
+        annotations exist, returns None
+
+    """
+
+    match = re.search('(?P<subject>.+)-561nm.+', vol_subject_sub_folder)
+    subject = match['subject']
+    annot_match_str = vol_subject_main_folder + '-' + subject
+
+    # See if we can find this subject in the annotations
+    trans_i = np.argwhere(annot_subjects == annot_match_str)
+    if trans_i.size > 0:
+        if trans_i.size > 1:
+            raise(RuntimeError('Caught multiple matches'))
+        else:
+            return trans_i[0][0]
+    else:
+        return None
+
 
 
 def produce_table_of_extracted_data(act_data: dict, annot_data: dict,
@@ -482,7 +521,10 @@ def read_raw_transitions_from_excel(file: Union[pathlib.Path, str], sheet_name: 
                                 suc_beh_col: str = 'Succeed Behavior',
                                 tgt_site_col: str = 'target site',
                                 trans_time_col: str = 'transition time',
-                                int_time_col: str = 'interval time') -> pd.DataFrame:
+                                int_time_col: str = 'interval time',
+                                manip_start_col: str = 'Manipulation start',
+                                manip_end_col: str = 'Manipulation End',
+                                adjust_frame_index: bool = True) -> pd.DataFrame:
     """ Reads in transitions for specimens from an excel spreadsheet with data in the final format for the project.
 
     Args:
@@ -502,6 +544,13 @@ def read_raw_transitions_from_excel(file: Union[pathlib.Path, str], sheet_name: 
 
         int_time_col: The name of the column giving the interval time
 
+        manip_start_col: The name of the column giving the index for manipulation start frames
+
+        manip_end_col: The name of the column giving the index for manipulation end frames
+
+        adjust_frame_index: True if indexing of start and end frames for the manipulation should be
+        changed to 0 indexed (they are 1 indexed in the excel file).
+
     Returns:
         table: The data from the excel file, reformated
     """
@@ -510,10 +559,16 @@ def read_raw_transitions_from_excel(file: Union[pathlib.Path, str], sheet_name: 
     df = pd.read_excel(file, sheet_name=sheet_name)
 
     # Down select to just the information we want
-    df = df[[smp_id_col, prec_beh_col, suc_beh_col, tgt_site_col, trans_time_col, int_time_col]]
+    df = df[[smp_id_col, prec_beh_col, suc_beh_col, tgt_site_col, trans_time_col, int_time_col,
+             manip_start_col, manip_end_col]]
 
     # Rename our columns
-    df.columns = ['Smp ID', 'Beh Before', 'Beh After', 'Tgt Site', 'Trans Time', 'Int Time']
+    df.columns = ['subject_id', 'beh_before', 'beh_after', 'Tgt Site', 'Trans Time', 'Int Time',
+                  'Manipulation Start', 'Manipulation End']
+
+    if adjust_frame_index:
+        df['Manipulation Start'] = df['Manipulation Start'] - 1
+        df['Manipulation End'] = df['Manipulation End'] - 1
 
     return df
 
@@ -575,17 +630,21 @@ def count_unique_subjs_per_transition(table: pd.DataFrame, behs: Sequence[str] =
         after behavior.
     """
 
+    BEFORE_STR = 'beh_before'
+    AFTER_STR = 'beh_after'
+    SMP_STR = 'subject_id'
+
     if behs is None:
-        behs = list(set(table['beh_before'].unique().tolist() + table['beh_after'].unique().tolist()))
+        behs = list(set(table[BEFORE_STR].unique().tolist() + table[AFTER_STR].unique().tolist()))
         behs.sort()
 
     n_behs = len(behs)
     n_subjs_per_trans = np.zeros([n_behs, n_behs])
     for b_i, b_b in enumerate(behs):
         for a_i, a_b in enumerate(behs):
-            trans_rows = np.logical_and((table['beh_before'] == b_b).to_numpy(),
-                                        (table['beh_after'] == a_b).to_numpy())
-            n_subjs_per_trans[b_i, a_i] = len(table[trans_rows]['subject_id'].unique())
+            trans_rows = np.logical_and((table[BEFORE_STR] == b_b).to_numpy(),
+                                        (table[AFTER_STR] == a_b).to_numpy())
+            n_subjs_per_trans[b_i, a_i] = len(table[trans_rows][SMP_STR].unique())
 
     return pd.DataFrame(n_subjs_per_trans, index=behs, columns=behs)
 

@@ -213,6 +213,9 @@ for cell_type, cell_ids in cell_types:
             before_beh_sum = trans_subj_cnts.sum(1)
             before_behs = [b for b in before_beh_sum[before_beh_sum > before_beh_th].index]
 
+            #TODO: Need to remove any events which have a behaviors in before_behs and in after_behs
+            raise(NotImplementedError('Needs to update code'))
+
             # Pull out Delta F/F
             if (test_type == 'state_dependence') or (test_type == 'after_reporting'):
                 dff = data['dff_after'].to_numpy()

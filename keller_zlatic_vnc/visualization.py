@@ -3,46 +3,39 @@
 from typing import Sequence, Tuple
 import numpy as np
 
-from janelia_core.visualization.custom_color_maps import make_red_green_c_map
 from janelia_core.visualization.custom_color_maps import generate_two_param_hsv_map
 from janelia_core.visualization.custom_color_maps import MultiParamCMap
 from janelia_core.visualization.volume_visualization import visualize_rgb_max_project
 
-def gen_coef_p_vl_cmap(coef_vls: np.ndarray, p_vls: np.ndarray, n_coef_clrs: int = 1024, n_p_vl_vls: int = 1024,
-                       clim_percs: Sequence[float] = [.1, 99.9], max_p_vl: float = None) -> MultiParamCMap:
+
+def gen_coef_p_vl_cmap(coef_cmap, positive_clim: float, plims: Sequence[float], n_coef_clrs: int = 1024,
+                       n_p_vl_vls: int = 1024)  -> MultiParamCMap:
     """ Generates a MultiParamCMap for a range of coefficient values as colors and p-values as values of hsv colors.
 
     Args:
-        coef_vls: The coefficient values that will be displayed
+        coef_cmap: The colormap to draw coefficent colors from.
 
-        p_vls: The p-values that will be displayed
+        positive_clim: The largest positive value that colors should saturate for.  Negative values will saturate at the
+        negative of this value.
 
-        n_coef_clrs: The number of distint coefficient colors that should be in the colormap
+        plims: plims[0] is the p-value at and below that values should saturate for.  plims[1] is the value for which
+        values at and above are set to 0 (black).
 
-        n_p_vl_vls: The number of distint p-value values (that is hsv values) that should be in the colormap
+        n_coef_clrs: The number of distinct coefficent colors in the map.
 
-        max_p_vl: The p-value at and above which is shown as black. If not provided, will be the largest
-        p-value in p_vls.
+        n_p_vl_vls: The number of distinct p-value values (that is hsv values) that should be in the colormap
 
     Raises:
         ValueError: If n_coef_clrs or n_p_vl_vls is less than 2.
     """
 
-    if n_coef_clrs < 2:
-        raise(ValueError('n_coef_clrs must be greater than 1'))
+    if n_coef_clrs < 2 or n_p_vl_vls < 2:
+        raise(ValueError('n_coef_clrs and n_p_vl_vls must be greater than 1'))
 
-    if n_p_vl_vls < 2:
-        raise(ValueError('n_p_vl_vls must be greater than 1'))
+    coef_step = 2*positive_clim/n_coef_clrs
 
-    min_coef = np.percentile(coef_vls, clim_percs[0])
-    max_coef = np.percentile(coef_vls, clim_percs[1])
-    max_abs_coef = np.max(np.abs([min_coef, max_coef]))
-
-    coef_step = 2*max_abs_coef/n_coef_clrs
-
-    min_p_vl = np.min(p_vls)
-    if max_p_vl is None:
-        max_p_vl = np.max(p_vls)
+    min_p_vl = plims[0]
+    max_p_vl = plims[1]
 
     if max_p_vl < min_p_vl:
         # Handle this special, degenerate case here - in this case, everything gets mapped to black
@@ -50,12 +43,12 @@ def gen_coef_p_vl_cmap(coef_vls: np.ndarray, p_vls: np.ndarray, n_coef_clrs: int
 
     p_vl_step = (max_p_vl - min_p_vl)/n_p_vl_vls
 
-    coef_range = (-max_abs_coef, max_abs_coef+coef_step, coef_step)
+    coef_range = (-positive_clim, positive_clim+coef_step, coef_step)
     p_vl_range = (max_p_vl+p_vl_step, min_p_vl, -p_vl_step)
 
     return generate_two_param_hsv_map(clr_param_range=coef_range, vl_param_range=p_vl_range,
-                                      p1_cmap=make_red_green_c_map(n_coef_clrs),
-                                      clims=(-max_abs_coef, max_abs_coef), vllims=(max_p_vl, min_p_vl))
+                                      p1_cmap=coef_cmap,
+                                      clims=(-positive_clim, positive_clim), vllims=(max_p_vl, min_p_vl))
 
 
 def visualize_coef_p_vl_max_projs(vol: np.ndarray, dim_m: np.ndarray, cmap: MultiParamCMap, cmap_coef_range: Sequence = None,
