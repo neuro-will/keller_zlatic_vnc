@@ -42,7 +42,7 @@ temp_folder = '/Users/bishopw/Desktop/other_dep_temp'
 # ======================================================================================================================
 # Here we specify the location of the data
 
-data_folder = r'/Users/bishopw/Documents/Janelia_Research/Projects/keller_zlatic_vnc/data/extracted_dff_v2'
+data_folder = r'/Volumes/bishoplab/projects/keller_vnc/data/extracted_dff_v2'
 transition_file = 'transition_list.xlsx'
 
 a00c_a4_act_data_file = 'A00c_activity_A4.mat'
@@ -77,7 +77,8 @@ cell_types = [('a00c', 'all'),
               ('basin', [7]),
               ('basin', [12])]
 
-cell_types = [('a00c', [1, 2]),
+if False:
+    cell_types = [('a00c', [1, 2]),
               ('a00c', [3, 4]),
               ('a00c', [5, 6]),
               ('handle', [1]),
@@ -106,7 +107,8 @@ cell_types = [('a00c', [1, 2]),
               ('basin', [12])]
 
 manip_types = ['A4', 'A9', 'A4+A9']
-cut_off_times = [3.656, 9.0034, np.inf]
+cut_off_times = [3.231, 17.4523, 111.6582]
+
 
 # Min number of subjects which must display a test behavior to include it in testing
 min_n_subjects_per_beh = 3
@@ -134,8 +136,8 @@ plt.rc('font', family='arial', weight='normal', size=15)
 raw_trans = read_raw_transitions_from_excel(pathlib.Path(data_folder) / transition_file)
 
 # Recode behavioral annotations
-raw_trans = recode_beh(raw_trans, 'Beh Before')
-raw_trans = recode_beh(raw_trans, 'Beh After')
+raw_trans = recode_beh(raw_trans, 'beh_before')
+raw_trans = recode_beh(raw_trans, 'beh_after')
 
 for cell_type, cell_ids in cell_types:
 
@@ -170,7 +172,7 @@ for cell_type, cell_ids in cell_types:
                   ', cut off time ' + str(cut_off_time) + ', and cell ids: ' + str(cell_ids))
 
             # Extract transitions
-            trans = extract_transitions(raw_trans, cut_off_time)
+            trans, _ = extract_transitions(raw_trans, cut_off_time)
 
             # Generate table of data
             a4table = generate_transition_dff_table(act_data=a4_act, trans=trans)
@@ -213,8 +215,21 @@ for cell_type, cell_ids in cell_types:
             before_beh_sum = trans_subj_cnts.sum(1)
             before_behs = [b for b in before_beh_sum[before_beh_sum > before_beh_th].index]
 
-            #TODO: Need to remove any events which have a behaviors in before_behs and in after_behs
-            raise(NotImplementedError('Needs to update code'))
+            # Keep only events that have a transition fron one of the before behaviors into one of the after behaviors
+            before_keep_rows = data['beh_before'].apply(lambda x: x in set(before_behs))
+            after_keep_rows = data['beh_after'].apply(lambda x: x in set(after_behs))
+            data = data[before_keep_rows & after_keep_rows]
+
+            # Update our list of before and after behaviors (since by removing rows, some of our control behaviors
+            # may no longer be present
+            new_trans_sub_cnts = count_unique_subjs_per_transition(data)
+            new_after_beh_sum = new_trans_sub_cnts.sum()
+            after_behs = [b for b in new_after_beh_sum[new_after_beh_sum > 0].index]
+            new_before_beh_sum = new_trans_sub_cnts.sum(1)
+            before_behs = [b for b in new_before_beh_sum[new_before_beh_sum > 0].index]
+            print('Using the following before behaviors: ' + str(before_behs))
+            print('Using the following after behaviors: ' + str(after_behs))
+            print(['Number of rows remaining in data: ' + str(len(data))])
 
             # Pull out Delta F/F
             if (test_type == 'state_dependence') or (test_type == 'after_reporting'):

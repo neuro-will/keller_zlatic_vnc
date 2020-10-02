@@ -41,7 +41,7 @@ temp_folder = '/Users/bishopw/Desktop/single_dep_temp'
 # ======================================================================================================================
 # Here we specify the location of the data
 
-data_folder = r'/Users/bishopw/Documents/Janelia_Research/Projects/keller_zlatic_vnc/data/extracted_dff_v2'
+data_folder = r'/Volumes/bishoplab/projects/keller_vnc/data/extracted_dff_v2'
 transition_file = 'transition_list.xlsx'
 
 a00c_a4_act_data_file = 'A00c_activity_A4.mat'
@@ -70,13 +70,14 @@ test_type = 'decision_dependence'
 
 # Cell types are tuples of form (cell type, list of cell ids).  In place of a list of cell ids, the string 'all'
 # indicates we are using all cell ids
-#cell_types = [('a00c', 'all'),
-#              ('handle', 'all'),
-#              ('basin', 'all'),
-#              ('basin', [7])]#,
-             # ('basin', [12])]
+cell_types = [('a00c', 'all'),
+              ('handle', 'all'),
+              ('basin', 'all'),
+              ('basin', [7]),
+              ('basin', [12])]
 
-cell_types = [('a00c', [1, 2]),
+if False:
+    cell_types = [('a00c', [1, 2]),
               ('a00c', [3, 4]),
               ('a00c', [5, 6]),
               ('handle', [1]),
@@ -105,7 +106,7 @@ cell_types = [('a00c', [1, 2]),
               ('basin', [12])]
 
 manip_types = ['A4', 'A9', 'A4+A9']
-cut_off_times = [3.656, 9.0034, np.inf]
+cut_off_times = [3.231, 17.4523, 111.6582]
 
 # Min number of subjects which must display a test behavior to include it in testing
 min_n_subjects_per_beh = 3
@@ -131,9 +132,11 @@ plt.rc('font', family='arial', weight='normal', size=15)
 # Read in raw transitions
 raw_trans = read_raw_transitions_from_excel(pathlib.Path(data_folder) / transition_file)
 
+print(raw_trans.columns)
+
 # Recode behavioral annotations
-raw_trans = recode_beh(raw_trans, 'Beh Before')
-raw_trans = recode_beh(raw_trans, 'Beh After')
+raw_trans = recode_beh(raw_trans, 'beh_before')
+raw_trans = recode_beh(raw_trans, 'beh_after')
 
 for cell_type, cell_ids in cell_types:
 
@@ -168,7 +171,7 @@ for cell_type, cell_ids in cell_types:
                   ', cut off time ' + str(cut_off_time) + ', and cell ids: ' + str(cell_ids))
 
             # Extract transitions
-            trans = extract_transitions(raw_trans, cut_off_time)
+            trans, _ = extract_transitions(raw_trans, cut_off_time)
 
             # Generate table of data
             a4table = generate_transition_dff_table(act_data=a4_act, trans=trans)
@@ -222,7 +225,7 @@ for cell_type, cell_ids in cell_types:
             new_after_beh_sum = new_trans_sub_cnts.sum()
             after_behs = [b for b in new_after_beh_sum[new_after_beh_sum > 0].index]
             new_before_beh_sum = new_trans_sub_cnts.sum(1)
-            before_behs = [b for b in new_before_beh_sum[new_before_beh_sum>0].index]
+            before_behs = [b for b in new_before_beh_sum[new_before_beh_sum > 0].index]
             print('Using the following before behaviors: ' + str(before_behs))
             print('Using the following after behaviors: ' + str(after_behs))
             print(['Number of rows remaining in data: ' + str(len(data))])
