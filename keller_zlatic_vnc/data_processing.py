@@ -22,7 +22,9 @@ BEHAVIOR_CODES = {'Q': ['Quiet', 'quiet'],
                   'H': ['Hunch', 'hunch', ' hunch'],
                   'T': ['Turn', 'turn'],
                   'O': ['Other', 'other', 'others'],
-                  'P': ['Back Hunch', 'back hunch']}
+                  'P': ['Back Hunch', 'back hunch'],
+                  'TL': ['turn (left turn)', 'Turn (left turn)'],
+                  'TR': ['turn (right turn)']}
 
 
 # Dictionary defining A00c segment codes

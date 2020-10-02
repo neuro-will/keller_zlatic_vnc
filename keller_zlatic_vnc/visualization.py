@@ -4,13 +4,14 @@ from typing import Sequence, Tuple
 import numpy as np
 
 from janelia_core.visualization.custom_color_maps import generate_two_param_hsv_map
+from janelia_core.visualization.custom_color_maps import generate_two_param_norm_map
 from janelia_core.visualization.custom_color_maps import MultiParamCMap
 from janelia_core.visualization.volume_visualization import visualize_rgb_max_project
 
 
 def gen_coef_p_vl_cmap(coef_cmap, positive_clim: float, plims: Sequence[float], n_coef_clrs: int = 1024,
                        n_p_vl_vls: int = 1024)  -> MultiParamCMap:
-    """ Generates a MultiParamCMap for a range of coefficient values as colors and p-values as values of hsv colors.
+    """ Generates a MultiParamCMap for a range of coefficient values as colors and p-values as the norm of colors.
 
     Args:
         coef_cmap: The colormap to draw coefficent colors from.
@@ -46,9 +47,9 @@ def gen_coef_p_vl_cmap(coef_cmap, positive_clim: float, plims: Sequence[float], 
     coef_range = (-positive_clim, positive_clim+coef_step, coef_step)
     p_vl_range = (max_p_vl+p_vl_step, min_p_vl, -p_vl_step)
 
-    return generate_two_param_hsv_map(clr_param_range=coef_range, vl_param_range=p_vl_range,
-                                      p1_cmap=coef_cmap,
-                                      clims=(-positive_clim, positive_clim), vllims=(max_p_vl, min_p_vl))
+    return generate_two_param_norm_map(clr_param_range=coef_range, norm_param_range=p_vl_range,
+                                       p1_cmap=coef_cmap, clims=(-positive_clim, positive_clim),
+                                       norm_lims=(max_p_vl, min_p_vl))
 
 
 def visualize_coef_p_vl_max_projs(vol: np.ndarray, dim_m: np.ndarray, cmap: MultiParamCMap, cmap_coef_range: Sequence = None,
