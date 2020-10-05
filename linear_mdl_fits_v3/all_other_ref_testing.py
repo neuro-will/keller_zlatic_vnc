@@ -32,7 +32,7 @@ ps = dict()
 
 # ======================================================================================================================
 # Here we specify where the pdf should be saved and its name in a single path
-pdf_save_path = '/Users/bishopw/Desktop/results/decision_dependence_other_ref_by_segment.pdf'
+pdf_save_path = '/Users/bishopw/Desktop/results/state_dependence_other_ref_by_segment.pdf'
 
 
 # ======================================================================================================================
@@ -63,7 +63,7 @@ handle_a9_act_data_file = 'Handle_activity_A9.mat'
 #   before_reporting - tests if dff before manipulation is sensitive to behavior before
 #   after_reporting - tests if dff after manipulation is sensitive to behavior after
 #
-test_type = 'decision_dependence'
+test_type = 'state_dependence'
 
 # ======================================================================================================================
 # Here, we specify the different ways we want to filter the data when fitting models.  We will produce results for all
@@ -71,13 +71,13 @@ test_type = 'decision_dependence'
 
 # Cell types are tuples of form (cell type, list of cell ids).  In place of a list of cell ids, the string 'all'
 # indicates we are using all cell ids
-cell_types = [('a00c', 'all'),
-              ('handle', 'all'),
-              ('basin', 'all'),
-              ('basin', [7]),
-              ('basin', [12])]
+#cell_types = [('a00c', 'all'),
+#              ('handle', 'all'),
+#              ('basin', 'all'),
+#              ('basin', [7]),
+#              ('basin', [12])]
 
-if False:
+if True:
     cell_types = [('a00c', [1, 2]),
               ('a00c', [3, 4]),
               ('a00c', [5, 6]),
