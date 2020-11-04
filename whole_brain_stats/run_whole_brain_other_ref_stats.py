@@ -1,35 +1,36 @@
-# Python script to call the function whole_brain_state_functions.py
+# Python script to call the function whole_brain_other_ref_testing and
+# then make videos and tiffs of results for different combinations of parameters
 
 import multiprocessing as mp
 import numpy as np
 import os
 from pathlib import Path
 
-from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import whole_brain_single_ref_testing
+from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import whole_brain_other_ref_testing
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_brain_videos_and_max_projs
 
 # ==============================================================================
 # Parameters go here: anything that is a list are values we will loop through
 # ==============================================================================
-
 # The data files we want to run tests on
-data_files = [Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_1_5_5_long_bl.pkl'),
-              Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_1_5_5.pkl'),
-              Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_4_20_20_long_bl.pkl'),
-              Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_4_20_20.pkl')]#,
-             # Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_12_60_60_long_bl.pkl'),
-             # Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_12_60_60.pkl')]
+data_files = [#Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v7\dff_4_20_20.pkl')]#,
+              #Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_4_20_20_long_bl.pkl')]#,
+             #Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_2_10_10.pkl'),
+             Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_2_10_10_long_bl.pkl')]#,
+             # Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_1_5_5.pkl'),
+             # Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_1_5_5_long_bl.pkl')]
+
 
 #data_files =  [Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v5\dff_12_60_60_long_bl.pkl'),
  #              Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v5\dff_12_60_60.pkl')]
 
 # The corresponding roi groups the results in data_files are for
-roi_groups = ['rois_1_5_5',
-              'rois_1_5_5',
-              'rois_4_20_20',
-              'rois_4_20_20']#,
-              #'rois_12_60_60',
-             # 'rois_12_60_60']
+roi_groups = [#'rois_4_20_20']#,
+              # 'rois_4_20_20']
+              #'rois_2_10_10',
+              'rois_2_10_10']
+            #  'rois_1_5_5',
+            #  'rois_1_5_5']
 
 #roi_groups =  ['rois_12_60_60',
      #         'rois_12_60_60']
@@ -44,13 +45,7 @@ cut_off_times = [3.231, 5.4997, 17.4523]
 # Manipulation types we want to consider
 manip_types = ['A4', 'A9', 'both']
 
-# Location of overlay files
-# Specify where we find overlay files
-overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.png',
-                 r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\cor_mean.png',
-                 r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\sag_mean.png']
-
-save_folder = Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6')
+save_folder = Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v7')
 
 min_n_subjects_per_beh = 3
 
@@ -60,13 +55,19 @@ alpha = .05
 
 max_n_cpu = 10
 
+# Location of overlay files
+# Specify where we find overlay files
+overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.png',
+                 r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\cor_mean.png',
+                 r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\sag_mean.png']
+
 
 # Define helper functions
 def single_ref_analysis(kwargs):
     stat_kwargs = kwargs[0]
     plot_kwargs = kwargs[1]
 
-    results_file = whole_brain_single_ref_testing(**stat_kwargs)
+    results_file = whole_brain_other_ref_testing(**stat_kwargs)
 
     make_whole_brain_videos_and_max_projs(results_file=results_file, overlay_files=overlay_files,
                                           save_supp_str=plot_kwargs['save_str'],
@@ -96,7 +97,7 @@ if __name__ == '__main__':
                     if not os.path.isdir(cur_save_folder):
                         os.mkdir(cur_save_folder)
 
-                    desc_str = (test_type + '_ref_' + beh_ref + '_cut_off_time_' + str(cut_off_time) +
+                    desc_str = (test_type + '_ref_O' + '_cut_off_time_' + str(cut_off_time) +
                                 '_mt_' + manip_type)
 
                     desc_str = desc_str.replace('.', '_')
@@ -127,5 +128,5 @@ if __name__ == '__main__':
     #for param_vls_i in param_vls:
     #    single_ref_analysis(param_vls_i)
 
-    pool = mp.Pool(n_used_cpus, maxtasksperchild=1)
-    pool.map(single_ref_analysis, param_vls, chunksize=1)
+    pool = mp.Pool(n_used_cpus)
+    pool.map(single_ref_analysis, param_vls)

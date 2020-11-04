@@ -242,7 +242,8 @@ def generate_transition_dff_table(act_data: dict, trans: dict,
 
 
 def generate_roi_dataset(img_folder: pathlib.Path, img_ext: str, frame_rate: float,
-                         roi_dicts: Sequence[dict], metadata: dict, run_checks: bool = True):
+                         roi_dicts: Sequence[dict], metadata: dict, run_checks: bool = True,
+                         add_images: bool = True):
     """ Generates a dataset of ROIS extracted from whole brain videos.
 
     Args:
@@ -282,22 +283,26 @@ def generate_roi_dataset(img_folder: pathlib.Path, img_ext: str, frame_rate: flo
         in the corresponding ROI locations file.
     """
 
-    # Find our images
-    image_names_sorted = find_images(pathlib.Path(img_folder), img_ext,
-                                     image_folder_depth=1, verbose=True)
+    if add_images:
+        # Find our images
+        image_names_sorted = find_images(pathlib.Path(img_folder), img_ext,
+                                         image_folder_depth=1, verbose=True)
 
-    # Convert from paths to strings - this is to ensure compatability across operating systems. Also put
-    # images paths in dictionaries - this will allow us to add additional fields to store with each
-    # image name later
-    image_names_sorted = [{'file': str(i_name)} for i_name in image_names_sorted]
+        # Convert from paths to strings - this is to ensure compatability across operating systems. Also put
+        # images paths in dictionaries - this will allow us to add additional fields to store with each
+        # image name later
+        image_names_sorted = [{'file': str(i_name)} for i_name in image_names_sorted]
 
-    # Put images into a dictionary for time stamp data
-    n_images = len(image_names_sorted)
-    image_int = 1.0/frame_rate
-    image_ts = np.asarray([image_int*i for i in range(n_images)])
-    im_dict = {'ts': image_ts, 'vls': image_names_sorted}
+        # Put images into a dictionary for time stamp data
+        n_images = len(image_names_sorted)
+        image_int = 1.0/frame_rate
+        image_ts = np.asarray([image_int*i for i in range(n_images)])
+        im_dict = {'ts': image_ts, 'vls': image_names_sorted}
 
-    data_dict = {'imgs': im_dict}
+        data_dict = {'imgs': im_dict}
+    else:
+        image_ts = np.asarray([0.0])
+        data_dict = dict()
 
     # Now we process rois
     roi_groups = dict()
@@ -318,10 +323,11 @@ def generate_roi_dataset(img_folder: pathlib.Path, img_ext: str, frame_rate: flo
 
             if run_checks:
                 # Make sure the values have the expected number of rois and time stamps
-                n_vl_ts, n_vl_rois = values[:].shape
-                if n_vl_ts != n_images:
-                    raise(RuntimeError('Dataset has ' + str(n_images) + ' images but found ' +
-                                       str(n_vl_ts) + ' data points in ' + str(v_dict['file']) + '.'))
+                if add_images:
+                    n_vl_ts, n_vl_rois = values[:].shape
+                    if n_vl_ts != n_images:
+                        raise(RuntimeError('Dataset has ' + str(n_images) + ' images but found ' +
+                                            str(n_vl_ts) + ' data points in ' + str(v_dict['file']) + '.'))
                 if n_vl_rois != n_group_rois:
                     raise(RuntimeError('Group has ' + str(n_group_rois) + ' ROIS but found ' +
                                         str(n_vl_rois) + ' ROIS in ' + str(v_dict['file']) + '.'))

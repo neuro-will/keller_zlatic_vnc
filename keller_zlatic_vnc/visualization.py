@@ -52,7 +52,9 @@ def gen_coef_p_vl_cmap(coef_cmap, positive_clim: float, plims: Sequence[float], 
                                        norm_lims=(max_p_vl, min_p_vl))
 
 
-def visualize_coef_p_vl_max_projs(vol: np.ndarray, dim_m: np.ndarray, cmap: MultiParamCMap, cmap_coef_range: Sequence = None,
+def visualize_coef_p_vl_max_projs(vol: np.ndarray, dim_m: np.ndarray, cmap: MultiParamCMap,
+                                  overlays: Sequence[np.ndarray] = None,
+                                  cmap_coef_range: Sequence = None,
                                   cmap_p_vl_range: Sequence = None, title: str = None):
     """ Generates an image of max projections of rgb volumes of combined coefficient values and p-values.
 
@@ -62,6 +64,9 @@ def visualize_coef_p_vl_max_projs(vol: np.ndarray, dim_m: np.ndarray, cmap: Mult
         dim_m: A scalar multiplier for each dimension in the order x, y, z to account for aspect ratios.
 
         cmap: The colormap used to produce the original volume.
+
+        overlays: If provided, overlays[0] is an image to overlay the z-projection, and overlays[1] and [2] and images
+        to overlay the x and y projections.  These overlays should be of the same dimensions as the projections.
 
         cmap_coef_range: The range of values to generate colormap keys for.  Of the form (start, stop, step). If None,
         the range of values within saturation limits of the colormap will be used.
@@ -96,7 +101,7 @@ def visualize_coef_p_vl_max_projs(vol: np.ndarray, dim_m: np.ndarray, cmap: Mult
     min_coef_vl = np.min(coef_vls)
     max_coef_vl = np.max(coef_vls)
 
-    visualize_rgb_max_project(vol=vol, dim_m=dim_m, cmap_im=cmap_im,
+    visualize_rgb_max_project(vol=vol, dim_m=dim_m, cmap_im=cmap_im, overlays=overlays,
                               cmap_extent=(min_cmap_p_vl, max_cmap_p_vl, min_coef_vl, max_coef_vl),
                               cmap_xlabel='$\log(p)$', cmap_ylabel='coef vl ($\Delta F / F$)',
                               title=title)
