@@ -580,7 +580,9 @@ def make_whole_brain_videos_and_max_projs(results_file: Path, overlay_files: Seq
         var_name = test_behs[v_i]
 
         coefs_image = np.zeros(im_shape, dtype=np.float32)
+        # TODO: coefs_image should be initialized with all nan values.  Need to make sure code below can handle this.
         p_vls_image = np.zeros(im_shape, dtype=np.float32)
+        p_vls_image[:, :, :] = np.nan
         log_p_vls_image = np.zeros(im_shape, dtype=np.float32)
 
         coefs = rs['beh_stats'][var_name]['beta']

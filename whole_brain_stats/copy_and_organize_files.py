@@ -16,13 +16,19 @@ base_dirs = [r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20_l
              r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5_long_bl',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_4_20_20_long_bl',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_2_10_10_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5_long_bl']
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_2_10_10',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_4_20_20',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_2_10_10',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5']
 
 # Specify where we save new results
 tgt_dir = r'A:\projects\keller_vnc\results\whole_brain_stats\organized'
 
 # List to type of tests we want to copy and organize
-test_types = ['state_dependence', 'prediction_dependence']
+test_types = ['prediction_dependence', 'decision_dependence']
 
 # List to type of suffix of files we want to copy
 file_types = ['comb.mp4', '.tiff']
@@ -59,10 +65,10 @@ for b_dir in base_dirs:
                     copy_src_path = sub_folder / file_name
                     copy_tgt_path = new_folder / file_name
 
-                    if os.path.exists(copy_tgt_path):
-                        raise(RuntimeError('Caught existing file: ' + str(copy_tgt_path)))
-                    else:
-                        shutil.copyfile(copy_src_path, copy_tgt_path)
+                    #if os.path.exists(copy_tgt_path):
+                    #    raise(RuntimeError('Caught existing file: ' + str(copy_tgt_path)))
+                    #else:
+                    shutil.copyfile(copy_src_path, copy_tgt_path)
 
 
 

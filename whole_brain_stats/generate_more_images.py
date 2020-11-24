@@ -15,16 +15,21 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 # ======================================================================================================================
 # List directories holding results - we will produce images for all results in these
 # directories matching the rest of the criteria the user has specified below
-
 base_dirs = [r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20_long_bl',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_2_10_10_long_bl',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5_long_bl',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_4_20_20_long_bl',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_2_10_10_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5_long_bl']
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_2_10_10',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_4_20_20',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_2_10_10',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5']
 
 # List which type of tests we want to produce images for
-test_types = ['prediction_dependence, decision_dependence']
+test_types = ['prediction_dependence', 'decision_dependence']
 
 # Specify where we find overlay files
 overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.png',
@@ -56,20 +61,20 @@ def gen_images(results_file):
     status_file_name = '.mo_status_' + Path(results_file).name
     status_file_path = Path(results_file).parents[0] / status_file_name
 
-    if os.path.exists(status_file_path):
-        print('Skip')
-    else:
-        with open(results_file, 'rb') as f:
-            rs = pickle.load(f)
-        ps = rs['ps']
+    #if os.path.exists(status_file_path):
+    #    print('Skip')
+    #else:
+    with open(results_file, 'rb') as f:
+        rs = pickle.load(f)
+    ps = rs['ps']
 
-        data_file_stem = Path(ps['data_file']).stem
-        save_str = ps['save_str'] + '_' + data_file_stem
+    data_file_stem = Path(ps['data_file']).stem
+    save_str = ps['save_str'] + '_' + data_file_stem
 
 
-        roi_group = 'rois_' + re.match('.*dff_([0-9]{1,2}_[0-9]{1,2}_[0-9]{1,2}).*', Path(results_file).name).group(1)
+    roi_group = 'rois_' + re.match('.*dff_([0-9]{1,2}_[0-9]{1,2}_[0-9]{1,2}).*', Path(results_file).name).group(1)
 
-        make_whole_brain_videos_and_max_projs(results_file=Path(results_file),
+    make_whole_brain_videos_and_max_projs(results_file=Path(results_file),
                                               overlay_files=overlay_files,
                                               save_supp_str=save_str,
                                               roi_group=roi_group,
@@ -80,9 +85,9 @@ def gen_images(results_file):
                                               gen_combined_tiffs=True, gen_combined_movies=False,
                                               gen_combined_projs=False, gen_uber_movies=False)
 
-        # Save a small marker file noting that we are done
-        with open(status_file_path, 'wb') as f:
-            pickle.dump({'done': True}, f)
+    # Save a small marker file noting that we are done
+    with open(status_file_path, 'wb') as f:
+        pickle.dump({'done': True}, f)
 
 # ======================================================================================================================
 # Run everything in parallel
