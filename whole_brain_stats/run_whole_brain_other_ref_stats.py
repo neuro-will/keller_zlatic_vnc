@@ -5,6 +5,7 @@ import multiprocessing as mp
 import numpy as np
 import os
 from pathlib import Path
+import pickle
 
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import whole_brain_other_ref_testing
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_brain_videos_and_max_projs
@@ -13,28 +14,20 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 # Parameters go here: anything that is a list are values we will loop through
 # ==============================================================================
 # The data files we want to run tests on
-data_files = [#Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v7\dff_4_20_20.pkl')]#,
-              #Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_4_20_20_long_bl.pkl')]#,
-             #Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_2_10_10.pkl'),
-             Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_2_10_10_long_bl.pkl')]#,
-             # Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_1_5_5.pkl'),
-             # Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v6\dff_1_5_5_long_bl.pkl')]
-
-
-#data_files =  [Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v5\dff_12_60_60_long_bl.pkl'),
- #              Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v5\dff_12_60_60.pkl')]
+data_files = [Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20.pkl'),
+              Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20_long_bl.pkl'),
+             Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_2_10_10.pkl'),
+             Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_2_10_10_long_bl.pkl'),
+              Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5.pkl'),
+             Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5_long_bl.pkl')]
 
 # The corresponding roi groups the results in data_files are for
-roi_groups = [#'rois_4_20_20']#,
-              # 'rois_4_20_20']
-              #'rois_2_10_10',
-              'rois_2_10_10']
-            #  'rois_1_5_5',
-            #  'rois_1_5_5']
-
-#roi_groups =  ['rois_12_60_60',
-     #         'rois_12_60_60']
-
+roi_groups = ['rois_4_20_20',
+              'rois_4_20_20',
+              'rois_2_10_10',
+              'rois_2_10_10',
+              'rois_1_5_5',
+              'rois_1_5_5']
 
 # The types of tests we want to run
 test_types = ['prediction_dependence', 'state_dependence', 'decision_dependence', 'before_reporting', 'after_reporting']
@@ -45,7 +38,7 @@ cut_off_times = [3.231, 5.4997, 17.4523]
 # Manipulation types we want to consider
 manip_types = ['A4', 'A9', 'both']
 
-save_folder = Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v7')
+save_folder = Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v8')
 
 min_n_subjects_per_beh = 3
 
@@ -67,17 +60,28 @@ def single_ref_analysis(kwargs):
     stat_kwargs = kwargs[0]
     plot_kwargs = kwargs[1]
 
-    results_file = whole_brain_other_ref_testing(**stat_kwargs)
+    # See if we have already completed results for this file
+    status_file_name = '._status_' + stat_kwargs['save_str'] + '_' + Path(stat_kwargs['data_file']).stem  + '.pkl'
+    status_file_path = stat_kwargs['save_folder'] / status_file_name
+    if os.path.exists(status_file_path):
+        return
+    else:
+        # Process results if we need to
+        results_file = whole_brain_other_ref_testing(**stat_kwargs)
 
-    make_whole_brain_videos_and_max_projs(results_file=results_file, overlay_files=overlay_files,
-                                          save_supp_str=plot_kwargs['save_str'],
-                                          roi_group=plot_kwargs['roi_group'],
-                                          gen_mean_tiff=False, gen_mean_movie=False,
-                                          gen_coef_movies=True, gen_coef_tiffs=False,
-                                          gen_p_value_movies=True, gen_p_value_tiffs=False,
-                                          gen_filtered_coef_movies=False, gen_filtered_coef_tiffs=False,
-                                          gen_combined_tiffs=False, gen_combined_movies=True,
-                                          gen_combined_projs=True, gen_uber_movies=True)
+        make_whole_brain_videos_and_max_projs(results_file=results_file, overlay_files=overlay_files,
+                                              save_supp_str=plot_kwargs['save_str'],
+                                              roi_group=plot_kwargs['roi_group'],
+                                              gen_mean_tiff=False, gen_mean_movie=False,
+                                              gen_coef_movies=True, gen_coef_tiffs=False,
+                                              gen_p_value_movies=True, gen_p_value_tiffs=False,
+                                              gen_filtered_coef_movies=False, gen_filtered_coef_tiffs=False,
+                                              gen_combined_tiffs=False, gen_combined_movies=True,
+                                              gen_combined_projs=True, gen_uber_movies=True)
+
+        # Save a small marker file noting that we are done
+        with open(status_file_path, 'wb') as f:
+            pickle.dump({'done': True}, f)
 
 
 # Run everything in parallel

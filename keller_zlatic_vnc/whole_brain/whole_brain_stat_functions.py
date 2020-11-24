@@ -673,7 +673,8 @@ def make_whole_brain_videos_and_max_projs(results_file: Path, overlay_files: Seq
                                        cmap=combined_cmap,
                                        title=var_name,
                                        cmap_param_vls=(None, np.arange(combined_cmap.param_vl_ranges[1][1],
-                                                                       combined_cmap.param_vl_ranges[1][0], .01)),
+                                                                       combined_cmap.param_vl_ranges[1][0],
+                                                                       -1*combined_cmap.param_vl_ranges[1][2])),
                                        cmap_param_strs=['coef vl ($\Delta F / F$)', '$\log(p)$'],
                                        one_index_z_plane=True,
                                        ax_position=coef_movie_ax_pos)
