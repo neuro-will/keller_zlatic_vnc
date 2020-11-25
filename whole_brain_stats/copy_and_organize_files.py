@@ -16,7 +16,7 @@ base_dirs = [r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20_l
              r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5_long_bl',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_4_20_20_long_bl',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_2_10_10_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5_long_bl',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_2_10_10',
              r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5',
@@ -28,7 +28,7 @@ base_dirs = [r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20_l
 tgt_dir = r'A:\projects\keller_vnc\results\whole_brain_stats\organized'
 
 # List to type of tests we want to copy and organize
-test_types = ['prediction_dependence', 'decision_dependence']
+test_types = ['decision_dependence', 'prediction_dependence', 'state_dependence']
 
 # List to type of suffix of files we want to copy
 file_types = ['comb.mp4', '.tiff']
