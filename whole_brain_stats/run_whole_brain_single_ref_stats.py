@@ -44,7 +44,7 @@ overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.
                  r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\cor_mean.png',
                  r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\sag_mean.png']
 
-save_folder = Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v9')
+save_folder = Path(r'A:\projects\keller_vnc\results\whole_brain_stats\v10')
 
 min_n_subjects_per_beh = 3
 
@@ -72,10 +72,10 @@ def single_ref_analysis(kwargs):
                                               save_supp_str=plot_kwargs['save_str'],
                                               roi_group=plot_kwargs['roi_group'],
                                               gen_mean_tiff=False, gen_mean_movie=False,
-                                              gen_coef_movies=True, gen_coef_tiffs=False,
-                                              gen_p_value_movies=True, gen_p_value_tiffs=False,
+                                              gen_coef_movies=False, gen_coef_tiffs=False,
+                                              gen_p_value_movies=False, gen_p_value_tiffs=True,
                                               gen_filtered_coef_movies=False, gen_filtered_coef_tiffs=False,
-                                              gen_combined_tiffs=False, gen_combined_movies=True,
+                                              gen_combined_tiffs=False, gen_combined_movies=False,
                                               gen_combined_projs=True, gen_uber_movies=True)
 
         # Save a small marker file noting that we are done
@@ -113,6 +113,7 @@ if __name__ == '__main__':
                                        'save_str': desc_str,
                                        'min_n_subjects_per_beh': min_n_subjects_per_beh,
                                        'beh_ref': beh_ref,
+                                       'combine_turns_for_analysis': True,
                                        'alpha': alpha},
                                        {'roi_group': roi_group,
                                         'save_str': desc_str + '_' + data_file_stem}))

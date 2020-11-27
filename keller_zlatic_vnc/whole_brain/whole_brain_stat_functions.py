@@ -21,6 +21,7 @@ from janelia_core.visualization.volume_visualization import comb_movies
 from janelia_core.visualization.volume_visualization import make_rgb_z_plane_movie
 from janelia_core.visualization.volume_visualization import make_z_plane_movie
 
+from keller_zlatic_vnc.data_processing import combine_turns
 from keller_zlatic_vnc.data_processing import count_unique_subjs_per_transition
 from keller_zlatic_vnc.data_processing import extract_transitions
 from keller_zlatic_vnc.linear_modeling import one_hot_from_table
@@ -30,7 +31,7 @@ from keller_zlatic_vnc.visualization import visualize_coef_p_vl_max_projs
 
 def whole_brain_other_ref_testing(data_file: Path, test_type: str, cut_off_time: float, manip_type: str,
                                    save_folder: Path, save_str: str, min_n_subjects_per_beh: int = 3,
-                                   beh_ref: str = 'Q', alpha: float = .05) -> Path:
+                                   beh_ref: str = 'Q', combine_turns_for_analysis: bool = False, alpha: float = .05) -> Path:
     """ Runs tests of a particular type across all voxels in the brain, comparing one condition vs all others.
 
     Test results will be saved in a file.
@@ -64,6 +65,8 @@ def whole_brain_other_ref_testing(data_file: Path, test_type: str, cut_off_time:
 
         beh_ref: The reference behavior for control behaviors.  Changing this will not affect test results.
 
+        combine_turns_for_analysis: True if left and right turns should be analyzed together.
+
         alpha: The alpha level for thresholding significance
 
     Returns:
@@ -85,6 +88,10 @@ def whole_brain_other_ref_testing(data_file: Path, test_type: str, cut_off_time:
 
     # Rename a few columns
     data.rename(columns={'Smp ID': 'subject_id', 'Beh Before': 'beh_before', 'Beh After': 'beh_after'}, inplace=True)
+
+    # Recode turns if we need to
+    if combine_turns_for_analysis:
+        combine_turns(data)
 
     # Apply cut off time
     _, data = extract_transitions(data, cut_off_time)
@@ -206,6 +213,8 @@ def whole_brain_other_ref_testing(data_file: Path, test_type: str, cut_off_time:
     save_name = save_str + '_' + data_file.stem + '.pkl'
     save_path = Path(save_folder) / save_name
 
+    trans_table = data[['subject_id', 'beh_before', 'beh_after']]
+
     ps = {'data_file': data_file, 'test_type': test_type,  'cut_off_time': cut_off_time,
           'manip_type': manip_type, 'save_folder': save_folder, 'save_str': save_str,
           'min_n_subjects_per_beh': min_n_subjects_per_beh, 'beh_ref': beh_ref, 'alpha': alpha}
@@ -213,6 +222,7 @@ def whole_brain_other_ref_testing(data_file: Path, test_type: str, cut_off_time:
     rs = dict()
     rs['beh_stats'] = beh_stats
     rs['full_stats'] = full_stats
+    rs['trans_table'] = trans_table
     rs['ps'] = ps
 
     with open(save_path, 'wb') as f:
@@ -225,7 +235,8 @@ def whole_brain_other_ref_testing(data_file: Path, test_type: str, cut_off_time:
 
 def whole_brain_single_ref_testing(data_file: Path, test_type: str, cut_off_time: float, manip_type: str,
                                    save_folder: Path, save_str: str, min_n_subjects_per_beh: int = 3,
-                                   beh_ref: str = 'Q', alpha: float = .05) -> Path:
+                                   beh_ref: str = 'Q', combine_turns_for_analysis: bool = False,
+                                   alpha: float = .05) -> Path:
     """ Runs tests of a particular type across all voxels in the brain, comparing one condition vs another.
 
     Test results will be saved in a file.
@@ -259,6 +270,8 @@ def whole_brain_single_ref_testing(data_file: Path, test_type: str, cut_off_time
 
         beh_ref: The behavior to compare to
 
+        combine_turns_for_analysis: True if left and right turns should be analyzed together
+
         alpha: The alpha level for thresholding significance
 
     Returns:
@@ -280,6 +293,10 @@ def whole_brain_single_ref_testing(data_file: Path, test_type: str, cut_off_time
 
     # Rename a few columns
     data.rename(columns={'Smp ID': 'subject_id', 'Beh Before': 'beh_before', 'Beh After': 'beh_after'}, inplace=True)
+
+    # Combine turns if needed
+    if combine_turns_for_analysis:
+        combine_turns(data)
 
     # Apply cut off time
     _, data = extract_transitions(data, cut_off_time)
@@ -388,6 +405,8 @@ def whole_brain_single_ref_testing(data_file: Path, test_type: str, cut_off_time
     save_name = save_str + '_' + data_file.stem + '.pkl'
     save_path = Path(save_folder) / save_name
 
+    trans_table = data[['subject_id', 'beh_before', 'beh_after']]
+
     ps = {'data_file': data_file, 'test_type': test_type,  'cut_off_time': cut_off_time,
           'manip_type': manip_type, 'save_folder': save_folder, 'save_str': save_str,
           'min_n_subjects_per_beh': min_n_subjects_per_beh, 'beh_ref': beh_ref, 'alpha': alpha}
@@ -395,6 +414,7 @@ def whole_brain_single_ref_testing(data_file: Path, test_type: str, cut_off_time
     rs = dict()
     rs['beh_stats'] = beh_stats
     rs['full_stats'] = full_stats
+    rs['trans_table'] = trans_table
     rs['ps'] = ps
 
     with open(save_path, 'wb') as f:

@@ -64,6 +64,24 @@ BASIN_SEG_CODES = {1: 'T1 L+R',
                    12: 'A9 L+R'}
 
 
+def combine_turns(tbl: pd.DataFrame):
+    """ Combines annotations for TL and TR into a single T annotation in a transition table.
+
+    This function assumes that behavior in the transition table has been recoded to use standard abbreivations.
+
+    Args:
+
+        tbl: The table to with behavior to recode
+
+    Returns:
+        Nothing.  The table will be modified in place.
+    """
+    tbl['beh_before'][tbl['beh_before'] == 'TL'] = 'T'
+    tbl['beh_before'][tbl['beh_before'] == 'TR'] = 'T'
+    tbl['beh_after'][tbl['beh_after'] == 'TL'] = 'T'
+    tbl['beh_after'][tbl['beh_after'] == 'TR'] = 'T'
+
+
 def extract_transitions(raw_trans_table: pd.DataFrame, cutoff_time:float = np.inf) -> Tuple[dict, pd.DataFrame]:
     """ Calculates new behavior transitions, using a cutoff time for behaviors after the stimulus.
 
@@ -622,6 +640,38 @@ def recode_beh(table: pd.DataFrame, col):
 
     return table_copy
     pass
+
+
+def count_transitions(table: pd.DataFrame, behs: Sequence[str] = None):
+    """ Generates a table with the number of transitions.
+
+    Args:
+
+        table: The table of data, as produced by generate_transition_dff_table.
+
+        behs: List of behaviors to look for transitions between.  If None, all behaviors in the table will be
+        considered.
+
+    Returns:
+        table: The table with counts for each transition.  Rows are before behavior; columns are after behavior.
+    """
+
+    BEFORE_STR = 'beh_before'
+    AFTER_STR = 'beh_after'
+
+    if behs is None:
+        behs = list(set(table[BEFORE_STR].unique().tolist() + table[AFTER_STR].unique().tolist()))
+        behs.sort()
+
+    n_behs = len(behs)
+    n_trans = np.zeros([n_behs, n_behs])
+    for b_i, b_b in enumerate(behs):
+        for a_i, a_b in enumerate(behs):
+            trans_rows = np.logical_and((table[BEFORE_STR] == b_b).to_numpy(),
+                                        (table[AFTER_STR] == a_b).to_numpy())
+            n_trans[b_i, a_i] = len(table[trans_rows])
+
+    return pd.DataFrame(n_trans, index=behs, columns=behs)
 
 
 def count_unique_subjs_per_transition(table: pd.DataFrame, behs: Sequence[str] = None):
