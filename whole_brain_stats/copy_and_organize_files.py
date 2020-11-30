@@ -11,27 +11,21 @@ import shutil
 #  Parameters go here
 
 # Directories where we will pull images from - these should have subfolders for each separate set of test setting
-base_dirs = [r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_2_10_10_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_4_20_20_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_2_10_10_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_2_10_10',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_4_20_20',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_2_10_10',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5']
+base_dirs = [r'A:\projects\keller_vnc\results\whole_brain_stats\v10\dff_4_20_20_long_bl',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v10\dff_2_10_10_long_bl',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v10\dff_1_5_5_long_bl',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v10\dff_4_20_20',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v10\dff_2_10_10',
+             r'A:\projects\keller_vnc\results\whole_brain_stats\v10\dff_1_5_5']
 
 # Specify where we save new results
-tgt_dir = r'A:\projects\keller_vnc\results\whole_brain_stats\organized'
+tgt_dir = r'A:\projects\keller_vnc\results\whole_brain_stats\v10_organized'
 
 # List to type of tests we want to copy and organize
-test_types = ['decision_dependence', 'prediction_dependence', 'state_dependence']
+test_types = ['before_reporting', 'after_reporting']
 
 # List to type of suffix of files we want to copy
-file_types = ['comb.mp4', '.tiff']
+file_types = ['comb.mp4', '.tiff', '.png']
 
 # ======================================================================================================================
 #  Create target folder if we need to
