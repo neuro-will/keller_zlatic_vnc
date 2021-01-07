@@ -15,21 +15,10 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 # ======================================================================================================================
 # List directories holding results - we will produce images for all results in these
 # directories matching the rest of the criteria the user has specified below
-base_dirs = [r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_2_10_10_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_4_20_20_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_2_10_10_long_bl',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_4_20_20',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_2_10_10',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v8\dff_1_5_5',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_4_20_20',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_2_10_10',
-             r'A:\projects\keller_vnc\results\whole_brain_stats\v9\dff_1_5_5']
+base_dirs = [r'A:\projects\keller_vnc\results\whole_brain_stats\v10\dff_1_5_5_long_bl']
 
 # List which type of tests we want to produce images for
-test_types = ['prediction_dependence', 'decision_dependence']
+test_types = ['state_dependence', 'prediction_dependence', 'decision_dependence']
 
 # Specify where we find overlay files
 overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.png',
@@ -79,8 +68,8 @@ def gen_images(results_file):
                                               save_supp_str=save_str,
                                               roi_group=roi_group,
                                               gen_mean_tiff=False, gen_mean_movie=False,
-                                              gen_coef_movies=False, gen_coef_tiffs=True,
-                                              gen_p_value_movies=False, gen_p_value_tiffs=True,
+                                              gen_coef_movies=False, gen_coef_tiffs=False,
+                                              gen_p_value_movies=False, gen_p_value_tiffs=False,
                                               gen_filtered_coef_movies=False, gen_filtered_coef_tiffs=False,
                                               gen_combined_tiffs=True, gen_combined_movies=False,
                                               gen_combined_projs=False, gen_uber_movies=False)
