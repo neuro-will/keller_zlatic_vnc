@@ -14,6 +14,7 @@ from janelia_core.dataprocessing.dataset import ROIDataset
 from janelia_core.dataprocessing.roi import ROI
 from janelia_core.fileio.data_handlers import NDArrayHandler
 from janelia_core.fileio.exp_reader import find_images
+from janelia_core.utils.searching import dict_find
 
 # Dictionary defining the codes we will use for behavior and how these are coded in the original data
 BEHAVIOR_CODES = {'Q': ['Quiet', 'quiet'],
@@ -26,6 +27,15 @@ BEHAVIOR_CODES = {'Q': ['Quiet', 'quiet'],
                   'TL': ['turn (left turn)', 'Turn (left turn)'],
                   'TR': ['turn (right turn)']}
 
+FULL_ANNOT_BEH_CODES = {'F': ['fw'],
+                        'B': ['bw'],
+                        'S': ['stim'],
+                        'H': ['hunch'],
+                        'T': ['turn'],
+                        'O': ['other'],
+                        'P': ['HP'],
+                        'TL': ['left turn'],
+                        'TR': ['right turn']}
 
 # Dictionary defining A00c segment codes
 A00C_SEG_CODES = {1: 'antL',
@@ -120,8 +130,23 @@ def extract_transitions(raw_trans_table: pd.DataFrame, cutoff_time:float = np.in
     return trans, table_copy
 
 
-def generate_excel_id_from_matlab_id(id: str) -> str:
+def generate_standard_id_for_full_annots(annot_file: str):
+    """ Gnerates a standard id for a file of full annotations.
+
+    See documentation for generate_standard_id_for_volume for the format of a standard id.
+    """
+    match_str = '(?P<yr>.+)-(?P<mn>.+)-(?P<dy>.+)L(?P<sn>.+)-behavior.+'
+    match = re.search(match_str, annot_file)
+    # Note the sn key will contain any extra information by the way we broke up the reg expression
+    return 'CW_' + match['yr'] + '-' + match['mn'] + '-' + match['dy'] + '-L' + match['sn']
+
+
+def generate_standard_id_from_matlab_id(id: str) -> str:
     """ Generates a specimen ID in the format of the original excel files from an id in a matlab file.
+
+    This function used to be called generate_excel_id_from_matlab_id.
+
+    See documentation for generate_standard_id_for_volume for the format of a standard id.
     """
 
     yr = '17'
@@ -138,6 +163,27 @@ def generate_excel_id_from_matlab_id(id: str) -> str:
         extra = ''
 
     return 'CW_' + yr + '-' + mn + '-' + dy + '-' + sn + extra
+
+
+def generate_standard_id_for_volume(main_folder: str, sub_folder:str):
+    """ Generates a standard string for the id of a subject, given a path to it's registered imaging data.
+
+    Standard form subject names are of the form CW_<yr>-<mn>-<dy>-L<n>[-extra], where [-extra] includes
+    optional extra information.
+
+    Args:
+        main_folder: The main folder for the subject
+
+        sub_folder: The subfolder for the subject
+
+    Returns:
+
+        subj_str: A string identifying the subject in standard form
+
+    """
+    match = re.search('(?P<subject>.+)-561nm.+', sub_folder)
+    subject = match['subject']
+    return main_folder + '-' + subject
 
 
 def generate_transition_dff_table(act_data: dict, trans: dict,
@@ -202,7 +248,7 @@ def generate_transition_dff_table(act_data: dict, trans: dict,
                 raise(ValueError('Caught different number of events for same specimen in activity data.'))
 
     # Convert ids in the activity files (MATLAB) to the format they are in excel
-    spec_ids = [generate_excel_id_from_matlab_id(id) for id in act_spec_ids]
+    spec_ids = [generate_standard_id_from_matlab_id(id) for id in act_spec_ids]
 
     # =================================================================================================
     # Produce DataFrame here
@@ -400,6 +446,32 @@ def match_annotation_subject_to_volume_subject(vol_subject_main_folder: str, vol
         return None
 
 
+def match_standard_subject_ids(match_id: str, id_list:Sequence) -> int:
+    """ Searches a list of subject ids and returns the index of a match.
+
+    Args:
+        match_id: The subject id to search for
+
+        id_list: A sequence of ids to search through
+
+    Returns:
+
+        match_ind: The index of the match.  If no match is found, returns None.
+
+    Raises:
+
+        ValueError: If more than one match is found.
+
+    """
+
+    match_ind = None
+    for i, cur_id in enumerate(id_list):
+        if cur_id == match_id:
+            if match_ind is None:
+                match_ind = i
+            else:
+                raise(ValueError('Found duplicate matches.'))
+    return match_ind
 
 def produce_table_of_extracted_data(act_data: dict, annot_data: dict,
                                     before_var_name: str = 'activityPreManipulationSet',
@@ -539,6 +611,70 @@ def produce_table_of_extracted_data(act_data: dict, annot_data: dict,
         full_data_frame = full_data_frame.append(_data_frame_for_spec(spec_act, spec_annot), ignore_index=True)
 
     return full_data_frame
+
+
+def read_full_annotations(file: pathlib.Path) -> pd.DataFrame:
+    """ Reads full annotations from a csv file.
+
+    The full annotations are those provided by Nadine marking all events for a sample.
+
+    This function will also return these annotations in a new format, matching the convention
+    used in the rest of the project.
+
+    Args:
+        file: The csv file to open
+
+    Returns:
+
+        annots: The annotations.  This is a DataFrame with three columns: Start (marking
+        the start of the annotation), End (marking the end of the annotation) and Beh (giving
+        the annotation for the behavior. If the event was marked but did not correspond to a
+        behavior (e.g., increased neural activity or something else of potential interest)
+        it will have a value of np.nan. Note: Start and End frames are zero-indexed.
+
+    Raises:
+
+        RuntimeError: If a marked turn does not also include a marked direction.
+    """
+
+    BASIC_BEHS = ['F', 'B', 'S', 'H', 'T', 'O', 'P']
+    TURN_BEHS = ['TL', 'TR']
+
+    # Read in the original annotations
+    annots = pd.read_csv(file, delimiter=';')
+
+    # Rename the columns of the annotations to match our convention
+    col_mapper = {k: dict_find(FULL_ANNOT_BEH_CODES, k) for k in annots.columns}
+    col_mapper['START'] = 'Start'
+    col_mapper['END'] = 'End'
+    annots.rename(columns=col_mapper, inplace=True)
+
+    # Get the annotated behavior for each event
+    beh_col_dict = dict()
+    for r in annots.index:
+        event_annots = annots.loc[r, BASIC_BEHS].to_numpy()
+
+        match_ind = np.argwhere(np.logical_not(np.isnan(event_annots)))
+        if not match_ind.size == 0:
+            beh = BASIC_BEHS[match_ind[0][0]]
+            if beh == 'T':
+                turn_annots = annots.loc[r, TURN_BEHS].to_numpy()
+                turn_match_ind = np.argwhere(np.logical_not(np.isnan(turn_annots)))
+                if turn_match_ind.size == 0:
+                    raise (RuntimeError('Found a turn without a marked direction.'))
+                beh = TURN_BEHS[turn_match_ind[0][0]]
+            beh_col_dict[r] = beh
+        else:
+            beh_col_dict[r] = np.nan
+
+    # Create a new formatted annotations data frame
+    formatted_annots = annots[['Start', 'End']].copy()
+    formatted_annots['Beh'] = pd.Series(beh_col_dict)
+
+    # Adjust annotations so they are zero-indexed
+    formatted_annots[['Start', 'End']] = formatted_annots[['Start', 'End']] - 1
+
+    return formatted_annots
 
 
 def read_raw_transitions_from_excel(file: Union[pathlib.Path, str], sheet_name: str='For Will',
