@@ -14,6 +14,8 @@ from janelia_core.dataprocessing.dataset import ROIDataset
 from janelia_core.dataprocessing.roi import ROI
 from janelia_core.fileio.data_handlers import NDArrayHandler
 from janelia_core.fileio.exp_reader import find_images
+from janelia_core.math.basic_functions import find_disjoint_intervals
+from janelia_core.math.basic_functions import copy_and_delay
 from janelia_core.utils.searching import dict_find
 
 # Dictionary defining the codes we will use for behavior and how these are coded in the original data
@@ -645,8 +647,8 @@ def read_full_annotations(file: pathlib.Path) -> pd.DataFrame:
 
     # Rename the columns of the annotations to match our convention
     col_mapper = {k: dict_find(FULL_ANNOT_BEH_CODES, k) for k in annots.columns}
-    col_mapper['START'] = 'Start'
-    col_mapper['END'] = 'End'
+    col_mapper['START'] = 'start'
+    col_mapper['END'] = 'end'
     annots.rename(columns=col_mapper, inplace=True)
 
     # Get the annotated behavior for each event
@@ -668,11 +670,11 @@ def read_full_annotations(file: pathlib.Path) -> pd.DataFrame:
             beh_col_dict[r] = np.nan
 
     # Create a new formatted annotations data frame
-    formatted_annots = annots[['Start', 'End']].copy()
-    formatted_annots['Beh'] = pd.Series(beh_col_dict)
+    formatted_annots = annots[['start', 'end']].copy()
+    formatted_annots['beh'] = pd.Series(beh_col_dict)
 
     # Adjust annotations so they are zero-indexed
-    formatted_annots[['Start', 'End']] = formatted_annots[['Start', 'End']] - 1
+    formatted_annots[['start', 'end']] = formatted_annots[['start', 'end']] - 1
 
     return formatted_annots
 
@@ -778,7 +780,8 @@ def recode_beh(table: pd.DataFrame, col):
     pass
 
 
-def count_transitions(table: pd.DataFrame, behs: Sequence[str] = None):
+def count_transitions(table: pd.DataFrame, behs: Sequence[str] = None,
+                      before_str: str = 'beh_before', after_str: str = 'beh_after'):
     """ Generates a table with the number of transitions.
 
     Args:
@@ -788,29 +791,30 @@ def count_transitions(table: pd.DataFrame, behs: Sequence[str] = None):
         behs: List of behaviors to look for transitions between.  If None, all behaviors in the table will be
         considered.
 
+        before_str, after_str: Names of columns labeling the before and after behaviors.
+
     Returns:
         table: The table with counts for each transition.  Rows are before behavior; columns are after behavior.
     """
 
-    BEFORE_STR = 'beh_before'
-    AFTER_STR = 'beh_after'
-
     if behs is None:
-        behs = list(set(table[BEFORE_STR].unique().tolist() + table[AFTER_STR].unique().tolist()))
+        behs = list(set(table[before_str].unique().tolist() + table[after_str].unique().tolist()))
         behs.sort()
 
     n_behs = len(behs)
     n_trans = np.zeros([n_behs, n_behs])
     for b_i, b_b in enumerate(behs):
         for a_i, a_b in enumerate(behs):
-            trans_rows = np.logical_and((table[BEFORE_STR] == b_b).to_numpy(),
-                                        (table[AFTER_STR] == a_b).to_numpy())
+            trans_rows = np.logical_and((table[before_str] == b_b).to_numpy(),
+                                        (table[after_str] == a_b).to_numpy())
             n_trans[b_i, a_i] = len(table[trans_rows])
 
     return pd.DataFrame(n_trans, index=behs, columns=behs)
 
 
-def count_unique_subjs_per_transition(table: pd.DataFrame, behs: Sequence[str] = None):
+def count_unique_subjs_per_transition(table: pd.DataFrame, behs: Sequence[str] = None,
+                                      before_str: str = 'beh_before', after_str: str = 'beh_after',
+                                      smp_str: str = 'subject_id'):
     """ Generates a table with the number of subjects demonstrating a given transition.
 
     Args:
@@ -819,26 +823,170 @@ def count_unique_subjs_per_transition(table: pd.DataFrame, behs: Sequence[str] =
         behs: List of behaviors to look for transitions between. If None, all behaviors in the table
         will be considered.
 
+        before_str, after_str, smp_str: The names of columns labeling the behavior before, after and sample id.
+
     Returns:
         table: The table with counts of subjects for each transition.  Rows are before behavior; columns are
         after behavior.
     """
 
-    BEFORE_STR = 'beh_before'
-    AFTER_STR = 'beh_after'
-    SMP_STR = 'subject_id'
-
     if behs is None:
-        behs = list(set(table[BEFORE_STR].unique().tolist() + table[AFTER_STR].unique().tolist()))
+        behs = list(set(table[before_str].unique().tolist() + table[after_str].unique().tolist()))
         behs.sort()
 
     n_behs = len(behs)
     n_subjs_per_trans = np.zeros([n_behs, n_behs])
     for b_i, b_b in enumerate(behs):
         for a_i, a_b in enumerate(behs):
-            trans_rows = np.logical_and((table[BEFORE_STR] == b_b).to_numpy(),
-                                        (table[AFTER_STR] == a_b).to_numpy())
-            n_subjs_per_trans[b_i, a_i] = len(table[trans_rows][SMP_STR].unique())
+            trans_rows = np.logical_and((table[before_str] == b_b).to_numpy(),
+                                        (table[after_str] == a_b).to_numpy())
+            n_subjs_per_trans[b_i, a_i] = len(table[trans_rows][smp_str].unique())
 
     return pd.DataFrame(n_subjs_per_trans, index=behs, columns=behs)
 
+
+def find_clean_events(annotations: pd.DataFrame) -> np.ndarray:
+    """ Returns clean events from full annotations.
+
+    Clean annotations are defined as those which:
+
+        1) Don't overlap any other events
+
+    Args:
+        annotations: The annotations to search for clean events in
+
+    Returns:
+        keep_events: A boolean array which can be used to index annotations to return only the clean events
+    """
+
+    # Find events that don't overlap with any others
+    ints = copy.deepcopy(annotations[['start', 'end']].to_numpy())
+    ints[:, 1] = ints[:, 1] + 1
+    disjoint_events = find_disjoint_intervals(ints)
+
+    return disjoint_events
+
+
+def find_before_and_after_events(events: pd.DataFrame, all_events: pd.DataFrame) -> pd.DataFrame:
+    """ Finds events before and after a given set of events of interest.
+
+    A preceeding event is defined as the one with the end time closest to the start time of an event of interest.
+    A succeeding event is defined as the one with the start time closest to the end time of an event of interest.
+
+    Note: If an event was not preceeded or suceeded by an event OR there was more than one preceeding or succeeding
+    events equally close to the event of interest, than the before or after values returned for the event of
+    interest will be nan.
+
+    Args:
+
+        events: The events we are interested in finding events before and after.  Should have the columns:
+        'Start' giving the start index of the event and 'End' giving the end index of an event.  It can have
+        additional columns as well.
+
+        all_events: The full set of events we want to search through to find those before and after each event of
+        interest.  Should have 'Start' and 'End' columns, as with events, but also a 'Beh' column giving the type
+        of behavior of each event.
+
+    Returns:
+
+        before_after_events: A Data frame with the same indices as events, specifying the events that came before
+        and after each event in events with the corresponding index.  It will have the columns: 'Before_Start',
+        'Before_End' and 'Before_Beh' giving the start and end indices of the before behavior as well as the type
+        of behavior.  It will also have corresponding columns for the 'After' event.
+    """
+
+    before_after_events_dict = dict()
+
+    all_event_indices = all_events.index.to_numpy()
+
+    events_of_interest_indices = events.index
+    for ind in events_of_interest_indices:
+
+        cur_start = events.loc[ind, 'start']
+        cur_end = events.loc[ind, 'end']
+
+        # Find events before and after this one
+        pull_events = (all_event_indices != ind)
+        pull_indices = all_event_indices[pull_events]
+        pull_start = all_events['start'][pull_indices].to_numpy()
+        pull_end = all_events['end'][pull_indices].to_numpy()
+
+        before_time_diffs = (pull_end - cur_start).astype('float')
+        before_time_diffs[before_time_diffs > 0] = -np.inf
+        max_inds = np.argwhere(before_time_diffs == np.max(before_time_diffs)).squeeze(axis=1)
+        if len(max_inds) == 1:
+            before_index = pull_indices[max_inds[0]]
+            row_data = [all_events['beh'][before_index], all_events['start'][before_index],
+                        all_events['end'][before_index]]
+        else:  # This means we had no before event or we had multiple with the same end time
+            row_data = [np.nan, np.nan, np.nan]
+
+        after_time_diffs = (pull_start - cur_end).astype('float')
+        after_time_diffs[after_time_diffs < 0] = np.inf
+        min_inds = np.argwhere(after_time_diffs == np.min(after_time_diffs)).squeeze(axis=1)
+        if len(min_inds) == 1:
+            after_index = pull_indices[min_inds[0]]
+            row_data += [all_events['beh'][after_index], all_events['start'][after_index],
+                             all_events['end'][after_index]]
+        else:
+            row_data += [np.nan, np.nan, np.nan]
+
+        before_after_events_dict[ind] = row_data
+
+    before_after_events = pd.DataFrame.from_dict(before_after_events_dict, orient='index',
+                                                 columns=['beh_before', 'beh_before_start', 'beh_before_end',
+                                                          'beh_after', 'beh_after_start', 'beh_after_end'])
+
+    before_after_events = before_after_events.astype({'beh_before_start': pd.Int64Dtype(),
+                                                      'beh_before_end': pd.Int64Dtype(),
+                                                      'beh_after_start': pd.Int64Dtype(),
+                                                      'beh_after_end': pd.Int64Dtype()})
+
+    return before_after_events
+
+
+def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame) -> pd.DataFrame:
+    """ Gets basic clean annotations from a set of full annotation.
+
+    This function will:
+        1) Remove any events which do not have a marked behavior
+        2) Search for "clean" events - see function find_clean_events
+        3) Find the events before and after each clean event, adding this information to the
+        DataFrame - see the function find_before_and_after_events
+        4) Remove any events which do not have a known before or after event
+        5) Remove any stimulus events or those which are preceeded or succeeded by a stimulus event
+
+    and return the result in final DataFrame.
+
+    This function will retain all columns in full_annots, and add supplemental information as
+    extra columns.
+
+    Args:
+
+        full_annots: The full annotations to produce clean annotations from
+
+    Returns:
+
+        basic_clean_annots: The final dataframe with the processed events.
+
+    """
+
+    # Get rid of any events without a know behavior type
+    full_annots.dropna(inplace=True)
+
+    # Now clean up events and note supplemental information
+    clean_annotations = full_annots[find_clean_events(full_annots)].copy()
+    supp_info = find_before_and_after_events(clean_annotations, full_annots)
+    basic_clean_annots = pd.concat([clean_annotations, supp_info], axis=1)
+
+    # Now remove any events without known before of after events
+    basic_clean_annots.dropna(inplace=True)
+
+    # Now get rid of any events which are stimulus, or preceeded or succeeding by a stimulus
+    stim_events = (basic_clean_annots['beh'] == 'S').to_numpy()
+    before_stim_events = (basic_clean_annots['beh_before'] == 'S').to_numpy()
+    after_stim_events = (basic_clean_annots['beh_after'] == 'S').to_numpy()
+    keep_events = np.logical_not(np.logical_or(np.logical_or(stim_events, before_stim_events), after_stim_events))
+    basic_clean_annots = basic_clean_annots.loc[keep_events]
+
+    return basic_clean_annots
