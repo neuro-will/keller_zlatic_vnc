@@ -673,7 +673,7 @@ def read_full_annotations(file: pathlib.Path) -> pd.DataFrame:
     formatted_annots = annots[['start', 'end']].copy()
     formatted_annots['beh'] = pd.Series(beh_col_dict)
 
-    # Adjust annotations so they are zero-indexed
+    # Adjust annotations so they are zero-indexed and respect standard slice notation (
     formatted_annots[['start', 'end']] = formatted_annots[['start', 'end']] - 1
 
     return formatted_annots
@@ -861,7 +861,7 @@ def find_clean_events(annotations: pd.DataFrame) -> np.ndarray:
 
     # Find events that don't overlap with any others
     ints = copy.deepcopy(annotations[['start', 'end']].to_numpy())
-    ints[:, 1] = ints[:, 1] + 1
+    ints[:, 1] = ints[:, 1] + 1 # Account for inclusive end indexing in the original data
     disjoint_events = find_disjoint_intervals(ints)
 
     return disjoint_events
