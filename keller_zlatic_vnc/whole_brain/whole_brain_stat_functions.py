@@ -4,7 +4,7 @@ import copy
 import os
 from pathlib import Path
 import pickle
-from typing import Sequence
+from typing import Sequence, Tuple
 
 import numpy as np
 import matplotlib.cm
@@ -16,6 +16,7 @@ from janelia_core.dataprocessing.dataset import ROIDataset
 from janelia_core.stats.permutation_tests import paired_grouped_perm_test
 from janelia_core.stats.regression import grouped_linear_regression_ols_estimator
 from janelia_core.stats.regression import grouped_linear_regression_acm_stats
+from janelia_core.stats.regression import grouped_linear_regression_acm_linear_restriction_stats
 from janelia_core.visualization.custom_color_maps import generate_normalized_rgb_cmap
 from janelia_core.visualization.volume_visualization import comb_movies
 from janelia_core.visualization.volume_visualization import make_rgb_z_plane_movie
@@ -425,7 +426,8 @@ def whole_brain_single_ref_testing(data_file: Path, test_type: str, cut_off_time
     return save_path
 
 
-def make_whole_brain_videos_and_max_projs(results_file: Path, overlay_files: Sequence[Path], save_supp_str: str,
+def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
+                                          overlay_files: Sequence[Path], save_supp_str: str,
                                           gen_mean_movie: bool = True, gen_mean_tiff: bool = True,
                                           gen_coef_movies: bool = True, gen_coef_tiffs: bool = True,
                                           gen_p_value_movies: bool = True, gen_p_value_tiffs: bool = True,
@@ -440,7 +442,12 @@ def make_whole_brain_videos_and_max_projs(results_file: Path, overlay_files: Seq
     """ Generates movies and max projections given results of whole brain statistical tests.
 
     Args:
-        results_file: Path to file with results of the whole-brain statistical tests.
+        rs: Results of the whole-brain statistical tests. This dictionary should have a 'beh_stats' key,
+        which is itself a dictionary. Each key in the 'beh_stats' dictionary is a behavior that we generate images for.
+        Each of these keys should themselves be a dictionary with the fields 'beta' and 'p_values' holding beta
+        coefficients and p values for each roi.
+
+        save_folder_path: Base folder images shuld be saved under.
 
         overlay_files: Paths to files that should be overlaid projections
 
@@ -525,13 +532,13 @@ def make_whole_brain_videos_and_max_projs(results_file: Path, overlay_files: Seq
     overlays[1] = np.fliplr(overlays[1])[1:, 1:, :]  # Coronal
     overlays[2] = np.fliplr(np.moveaxis(overlays[2], 0, 1))[1:, 1:, :]  # Sagital
 
-    # Parse the file path to get the parent path and name
-    results_folder = results_file.parent
+    # TODO: Remove
+    #results_folder = results_file.parent
 
     # Load the results
-    rs_file = Path(results_file)
-    with open(rs_file, 'rb') as f:
-        rs = pickle.load(f)
+    #rs_file = Path(results_file)
+    #with open(rs_file, 'rb') as f:
+    #    rs = pickle.load(f)
 
     test_behs = list(rs['beh_stats'].keys())
     n_rois = len(rs['beh_stats'][test_behs[0]]['p_values'])
@@ -548,7 +555,6 @@ def make_whole_brain_videos_and_max_projs(results_file: Path, overlay_files: Seq
 
     # Load mean image
     mn_img = dataset.stats['mean']
-
 
     # Define helper functions
     def coef_clims(vls, perc):
@@ -571,8 +577,6 @@ def make_whole_brain_videos_and_max_projs(results_file: Path, overlay_files: Seq
         return generate_normalized_rgb_cmap(base_map, 10000)
 
     # Create folder to save results
-    image_folder = results_file.stem  # Save images under a folder with the same name as the results
-    save_folder_path = Path(results_folder) / image_folder
     if not os.path.isdir(save_folder_path):
         os.makedirs(save_folder_path)
     print('Saving movies and images into: ' + str(save_folder_path))
@@ -725,6 +729,10 @@ def make_whole_brain_videos_and_max_projs(results_file: Path, overlay_files: Seq
         print('Done with making images for variable: ' + var_name)
 
 
+
+
+
+
 def whole_brain_stimulus_dep_testing(data_file: Path, manip_type: str, save_folder: Path, save_str: str,
                                n_perms:int = 10000, pool=None) -> Path:
     """ Runs tests for stimlus dependence across all voxels in the brain.
@@ -814,7 +822,75 @@ def whole_brain_stimulus_dep_testing(data_file: Path, manip_type: str, save_fold
 
     return save_path
 
-## Helper functions go here
+
+def test_for_largest_amplitude_beta(beta: np.ndarray, acm: np.ndarray, n_grps: int, alpha: float,
+                                    test_for_largest: bool = True) -> Tuple[int, bool, np.ndarray]:
+    """ Detects the largest or smallest value in a beta vector if there is statistical significance to do so.
+
+    The purpose of this function is to search through a vector of coefficients and see if there is statistical evidence
+    that one of them is actually bigger (or smaller) than the rest.  It works as follows:
+
+        1) It first finds the largest (or smallest) coefficient
+
+        2) It then does a series of pair-wise tests asking if the value of the coefficient identified in (1) is
+        statistically significantly different than all the other coefficients.  If so, then this function identifies
+        that coefficient as the biggest.  If not, it identifies no coefficient as the biggest (since there is not
+        enough statistical evidence for this).
+
+    Note: This function is designed to be applied after a linear regression fit, with asymptotic covariance matrix,
+    is obtained.
+
+    Args:
+        beta: The estimated coefficient vector.
+
+        acm: The estimated asymptotic covariance matrix.
+
+        n_grps: The number of groups in the original data (see grouped_linear_regression_ols_estimator)
+
+        alpha: The significance level to detect at.
+
+        test_for_largest: True if searching for largest value.  False if searching for smallest value.
+
+    Returns:
+
+        ind: The index of the largest (smallest) value.
+
+        detected: True if the largest index was statistically significantly larger than all others
+
+        p_values: The p-values of each pairwise test.  p_values[i] will be the p-value when beta[i] is
+        compared to the largest or smallest coefficient.  If beta[i] was the largets or smallest coefficient
+        than p_values[i] will be np.nan.
+
+    """
+
+    if test_for_largest:
+        ind = np.argmax(beta)
+    else:
+        ind = np.argmin(beta)
+
+    n_coefs = len(beta)
+
+    p_vls = np.zeros(n_coefs)
+    for c_i in range(n_coefs):
+        if c_i != ind:
+            r = np.zeros(n_coefs)
+            r[ind] = 1
+            r[c_i] = -1
+            q = np.asarray([0])
+            p_vls[c_i] = grouped_linear_regression_acm_linear_restriction_stats(beta=beta, acm=acm, r=r, q=q,
+                                                                                n_grps=n_grps)
+
+    if np.all(p_vls < alpha):
+        detected = True
+    else:
+        detected = False
+
+    p_vls[ind] = np.nan
+    return ind, detected, p_vls
+
+
+# Helper functions go here
+
 
 def _stim_stats_f(dff_base, dff_cmp, g_i, n_perms_i):
     beta, p = paired_grouped_perm_test(x0=dff_base, x1=dff_cmp, grp_ids=g_i, n_perms=n_perms_i)
@@ -823,3 +899,4 @@ def _stim_stats_f(dff_base, dff_cmp, g_i, n_perms_i):
     stats = {'p': p}
     stats['beta'] = beta
     return stats
+
