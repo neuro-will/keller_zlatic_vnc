@@ -19,7 +19,7 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 # ======================================================================================================================
 
 # File with calculated statistics
-results_file = r'\\dm11\bishoplab\projects\keller_vnc\results\whole_brain_spont_stats\spont_4_20_20_long_bl_co_21_max_stats.pkl'
+results_file = r'\\dm11\bishoplab\projects\keller_vnc\results\whole_brain_spont_stats\spont_1_5_5_long_bl_co_4_start_locked_0_6_ece_pre_pooled_mean_cmp_stats.pkl'
 
 # Specify location of overlay files
 overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.png',
@@ -27,12 +27,12 @@ overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.
                  r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\sag_mean.png']
 
 # The group of rois the statistics were generated for
-roi_group = 'rois_4_20_20'
+roi_group = 'rois_1_5_5'
 
 # The string p-values are stored under
-p_vl_str = 'non_max_p' # 'non_zero_p' or 'non_max_p'
+p_vl_str = 'eq_mean_p' # 'non_zero_p' or 'non_max_p' or 'eq_mean_p'
 
-# Lower percetage of p-values that brightness saturates at - should be between 0 and 100
+# Lower percentage of p-values that brightness saturates at - should be between 0 and 100
 min_p_vl_perc = .0001
 
 # ======================================================================================================================
@@ -65,14 +65,15 @@ make_whole_brain_videos_and_max_projs(rs=plot_rs,
                                       gen_mean_movie=True,
                                       gen_mean_tiff=False,
                                       gen_coef_movies=False,
-                                      gen_coef_tiffs=False,
+                                      gen_coef_tiffs=True,
                                       gen_p_value_movies=False,
-                                      gen_p_value_tiffs=False,
+                                      gen_p_value_tiffs=True,
                                       gen_filtered_coef_movies=False,
                                       gen_filtered_coef_tiffs=False,
                                       gen_combined_movies=False,
-                                      gen_combined_tiffs=False,
+                                      gen_combined_tiffs=True,
                                       gen_combined_projs=True,
                                       gen_uber_movies=True,
-                                      min_p_val_perc=min_p_vl_perc)
+                                      min_p_val_perc=min_p_vl_perc,
+                                      max_p_vl=.05)
 

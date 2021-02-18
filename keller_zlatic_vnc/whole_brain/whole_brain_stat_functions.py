@@ -532,14 +532,6 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
     overlays[1] = np.fliplr(overlays[1])[1:, 1:, :]  # Coronal
     overlays[2] = np.fliplr(np.moveaxis(overlays[2], 0, 1))[1:, 1:, :]  # Sagital
 
-    # TODO: Remove
-    #results_folder = results_file.parent
-
-    # Load the results
-    #rs_file = Path(results_file)
-    #with open(rs_file, 'rb') as f:
-    #    rs = pickle.load(f)
-
     test_behs = list(rs['beh_stats'].keys())
     n_rois = len(rs['beh_stats'][test_behs[0]]['p_values'])
 
@@ -623,28 +615,34 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
 
         if gen_coef_movies or gen_coef_tiffs or gen_uber_movies:
             coef_file_name = var_name + '_' + save_supp_str + '_coefs'
+            coef_c_lim_vls = coef_clims(coefs, coef_clim_percs)
 
             if gen_coef_tiffs:
-                tifffile.imwrite(save_folder_path / (coef_file_name + '.tiff'), coefs_image, compress=6)
+                tifffile.imwrite(save_folder_path / (coef_file_name + '.tiff'), coefs_image, compress=6,
+                                 metadata={'SuggestedMinSampleValue': coef_c_lim_vls[0],
+                                           'SuggestedMaxSampleValue': coef_c_lim_vls[1]})
 
             if gen_coef_movies or gen_uber_movies:
                 coef_movie_path = str(save_folder_path / (coef_file_name + '.mp4'))
                 coef_movie_ax_pos = make_z_plane_movie(volume=coefs_image, save_path=coef_movie_path,
-                                                       cmap=coef_cmap, clim=coef_clims(coefs, coef_clim_percs),
+                                                       cmap=coef_cmap, clim=coef_c_lim_vls,
                                                        title=var_name, cbar_label='${\Delta F}/{F}$',
                                                        one_index_z_plane=True)
 
         if gen_p_value_movies or gen_p_value_tiffs or gen_uber_movies:
             p_vl_file_name = var_name + '_' + save_supp_str + '_p_vls'
+            p_vl_c_lim_vls = p_vl_clims(log_p_vls, min_p_val_perc)
 
             if gen_p_value_tiffs:
-                tifffile.imwrite(save_folder_path / (p_vl_file_name + '.tiff'), p_vls_image, compress=6)
+                tifffile.imwrite(save_folder_path / (p_vl_file_name + '.tiff'), log_p_vls_image, compress=6,
+                                 metadata={'SuggestedMinSampleValue': p_vl_c_lim_vls[0],
+                                           'SuggestedMaxSampleValue': p_vl_c_lim_vls[1]})
 
             if gen_p_value_movies or gen_uber_movies:
 
                 p_vl_movie_path = str(save_folder_path / (p_vl_file_name + '.mp4'))
                 make_z_plane_movie(volume=log_p_vls_image, save_path=p_vl_movie_path,
-                                   cmap='gray_r', clim=p_vl_clims(log_p_vls, min_p_val_perc),
+                                   cmap='gray_r', clim=p_vl_c_lim_vls,
                                    title=var_name, cbar_label='$\log_{10}(p)$',
                                    one_index_z_plane=True)
 
@@ -727,10 +725,6 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
                 os.remove(comb_movie_path)
 
         print('Done with making images for variable: ' + var_name)
-
-
-
-
 
 
 def whole_brain_stimulus_dep_testing(data_file: Path, manip_type: str, save_folder: Path, save_str: str,
@@ -821,6 +815,46 @@ def whole_brain_stimulus_dep_testing(data_file: Path, manip_type: str, save_fold
     print('Saved results to: ' + str(save_path))
 
     return save_path
+
+
+def test_for_different_than_avg_beta(beta: np.ndarray, acm: np.ndarray, n_grps: int,
+                                     alpha: float) -> Tuple[np.ndarray, np.ndarray]:
+    """ Tests to see if each entry in beta is different than the average of all the others.
+
+    Note: This function is designed to be applied after a linear regression fit, with asymptotic covariance matrix,
+    is obtained.
+
+    Args:
+        beta: The estimated coefficient vector.
+
+        acm: The estimated asymptotic covariance matrix.
+
+        n_grps: The number of groups in the original data (see grouped_linear_regression_ols_estimator)
+
+        alpha: The significance level to detect at.
+
+    Returns:
+
+         p_vls: p_values[i] is the p-value for the test that beta[i] is different than the average of all other
+         coefficients
+
+         detected: p_values[i] is True if a signficiant difference was detected for beta[i] at level alpha.  It will
+         be False otherwise.
+
+     """
+
+    n_coefs = len(beta)
+    p_vls = np.zeros(n_coefs)
+    for c_i in range(n_coefs):
+        r = np.ones(n_coefs)/(n_coefs-1)
+        r[c_i] = -1
+        q = np.asarray([0])
+        p_vls[c_i] = grouped_linear_regression_acm_linear_restriction_stats(beta=beta, acm=acm, r=r, q=q,
+                                                                                n_grps=n_grps)
+
+    detected = p_vls <= alpha
+
+    return p_vls, detected
 
 
 def test_for_largest_amplitude_beta(beta: np.ndarray, acm: np.ndarray, n_grps: int, alpha: float,

@@ -18,7 +18,7 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 base_dirs = [r'A:\projects\keller_vnc\results\whole_brain_stats\v10\dff_1_5_5_long_bl']
 
 # List which type of tests we want to produce images for
-test_types = ['state_dependence', 'prediction_dependence', 'decision_dependence']
+test_types = ['state_dependence']
 
 # Specify where we find overlay files
 overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.png',
@@ -46,9 +46,11 @@ n_matching_files = len(matching_files)
 
 def gen_images(results_file):
 
+    results_file = Path(results_file)
+
     # See if we have already completed results for this file
-    status_file_name = '.mo_status_' + Path(results_file).name
-    status_file_path = Path(results_file).parents[0] / status_file_name
+    status_file_name = '.mo_status_' + results_file.name
+    status_file_path = results_file.parents[0] / status_file_name
 
     #if os.path.exists(status_file_path):
     #    print('Skip')
@@ -57,22 +59,28 @@ def gen_images(results_file):
         rs = pickle.load(f)
     ps = rs['ps']
 
+    roi_group = 'rois_' + re.match('.*dff_([0-9]{1,2}_[0-9]{1,2}_[0-9]{1,2}).*', results_file.name).group(1)
+
     data_file_stem = Path(ps['data_file']).stem
     save_str = ps['save_str'] + '_' + data_file_stem
 
+    results_folder = results_file.parent
+    image_folder = results_file.stem  # Save images under a folder with the same name as the results
+    save_folder_path = Path(results_folder) / image_folder
+    if not os.path.isdir(save_folder_path):
+        os.makedirs(save_folder_path)
 
-    roi_group = 'rois_' + re.match('.*dff_([0-9]{1,2}_[0-9]{1,2}_[0-9]{1,2}).*', Path(results_file).name).group(1)
-
-    make_whole_brain_videos_and_max_projs(results_file=Path(results_file),
-                                              overlay_files=overlay_files,
-                                              save_supp_str=save_str,
-                                              roi_group=roi_group,
-                                              gen_mean_tiff=False, gen_mean_movie=False,
-                                              gen_coef_movies=False, gen_coef_tiffs=False,
-                                              gen_p_value_movies=False, gen_p_value_tiffs=False,
-                                              gen_filtered_coef_movies=False, gen_filtered_coef_tiffs=False,
-                                              gen_combined_tiffs=True, gen_combined_movies=False,
-                                              gen_combined_projs=False, gen_uber_movies=False)
+    make_whole_brain_videos_and_max_projs(rs=rs,
+                                          save_folder_path=save_folder_path,
+                                          overlay_files=overlay_files,
+                                          save_supp_str=save_str,
+                                          roi_group=roi_group,
+                                          gen_mean_tiff=False, gen_mean_movie=False,
+                                          gen_coef_movies=False, gen_coef_tiffs=True,
+                                          gen_p_value_movies=False, gen_p_value_tiffs=True,
+                                          gen_filtered_coef_movies=False, gen_filtered_coef_tiffs=False,
+                                          gen_combined_tiffs=False, gen_combined_movies=False,
+                                          gen_combined_projs=False, gen_uber_movies=False)
 
     # Save a small marker file noting that we are done
     with open(status_file_path, 'wb') as f:

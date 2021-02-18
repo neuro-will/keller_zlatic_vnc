@@ -22,7 +22,7 @@ base_dirs = [r'A:\projects\keller_vnc\results\whole_brain_stats\v10\dff_4_20_20_
 tgt_dir = r'A:\projects\keller_vnc\results\whole_brain_stats\v10_organized'
 
 # List to type of tests we want to copy and organize
-test_types = ['before_reporting', 'after_reporting']
+test_types = ['state_dependence']
 
 # List to type of suffix of files we want to copy
 file_types = ['comb.mp4', '.tiff', '.png']
