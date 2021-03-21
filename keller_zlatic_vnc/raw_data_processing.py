@@ -69,7 +69,10 @@ def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib
 
         baseline_file_name: The name of the hdf5 file where the calculated baseline of rois will be saved
 
-        extract_params_file_name: The name of the pickle file that extraction parameters should be saved in
+        extract_params_file_name: The name of the pickle file that extraction parameters should be saved in.
+
+            Note: If extraction parameters include a preprocessing function, this will be removed before saving
+            the pickled parameters.
 
     """
 
@@ -142,6 +145,10 @@ def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib
 
     # Now we save extraction parameters
     param_save_file = save_dir / extract_params_file_name
+
+    if 'preprocess_f' in extract_params.keys():
+        extract_params['preprocess_f'] = 'not recorded'
+
     with open(param_save_file, 'wb') as f:
         pickle.dump(extract_params, f)
 

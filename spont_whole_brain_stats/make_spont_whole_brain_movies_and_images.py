@@ -19,7 +19,7 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 # ======================================================================================================================
 
 # File with calculated statistics
-results_file = r'\\dm11\bishoplab\projects\keller_vnc\results\whole_brain_spont_stats\spont_1_5_5_long_bl_co_4_start_locked_0_6_ece_pre_pooled_mean_cmp_stats.pkl'
+results_file = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject_spont_stats\spont_1_5_5_long_bl_co_4_start_locked_0_6_ece_prepooled_post_tc_mean_cmp_stats.pkl'
 
 # Specify location of overlay files
 overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.png',
@@ -34,6 +34,9 @@ p_vl_str = 'eq_mean_p' # 'non_zero_p' or 'non_max_p' or 'eq_mean_p'
 
 # Lower percentage of p-values that brightness saturates at - should be between 0 and 100
 min_p_vl_perc = .0001
+
+#ex_dataset_file=r'K:/SV4/CW_17-08-23/L1-561nm-ROIMonitoring_20170823_145226.corrected/extracted/dataset.pkl'
+ex_dataset_file=r'K:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\dataset.pkl'
 
 # ======================================================================================================================
 # Code starts here
@@ -75,5 +78,6 @@ make_whole_brain_videos_and_max_projs(rs=plot_rs,
                                       gen_combined_projs=True,
                                       gen_uber_movies=True,
                                       min_p_val_perc=min_p_vl_perc,
-                                      max_p_vl=.05)
+                                      max_p_vl=.05,
+                                      ex_dataset_file=ex_dataset_file)
 
