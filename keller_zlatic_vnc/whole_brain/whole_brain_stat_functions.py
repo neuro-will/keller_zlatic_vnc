@@ -923,6 +923,79 @@ def test_for_largest_amplitude_beta(beta: np.ndarray, acm: np.ndarray, n_grps: i
     return ind, detected, p_vls
 
 
+def find_usable_decision_events(ints: np.ndarray):
+    """
+    Finds events that are appropriate to use when looking for decision neurons.
+
+    Usable events are those which are:
+
+        1) Completely disjoint from all other events
+
+        OR
+
+        2) Overlap with only one other event, which starts before it.
+
+    The logic here is that a wave for one event may be ending when another is starting.
+
+    Args:
+        ints: The intervals of events. Each row is an interval.  The first column gives the starting index
+        and the second column gives the end index + 1 (so the convention for representing intervals
+        is the same used in slices.  For example, in interval that covered indices 0, 1 & 2, would have
+        a start index of 0 and an end index of 3.)
+
+    Returns:
+        usable_ints: The row indices of events which are usable.
+
+        disjoint_ints: The row indices of ints which correspond to disjoint intervals
+
+    """
+
+    def _find_overlapping_ints(query_int, all_other_ints, all_other_rows):
+
+        # Make end indices inclusive
+        start_ind = query_int[0]
+        stop_ind = query_int[1] - 1
+        all_other_ints[:, 1] = all_other_ints[:, 1] - 1
+
+        # Find intervals where the query interval only overlap their start
+        start_overlaps = np.logical_and(all_other_ints[:, 0] >= start_ind,
+                                        all_other_ints[:, 0] <= stop_ind)
+
+        # Find intervals where the query interval only overlaps their end
+        stop_overlaps = np.logical_and(all_other_ints[:, 1] >= start_ind,
+                                        all_other_ints[:, 1] <= stop_ind)
+
+        # Find intervals where the query interval contains the start and stop of the other intervals
+        contained_overlaps = np.logical_and(all_other_ints[:, 0] >= start_ind,
+                                            all_other_ints[:, 1] <= stop_ind)
+
+        # Find intervals where the query interval is contained with them
+        contained_within_overlaps = np.logical_and(all_other_ints[:, 0] <= start_ind,
+                                                   all_other_ints[:, 1] >= stop_ind)
+
+        overlap_ints = dict()
+        overlap_ints['start_ints'] = all_other_rows[start_overlaps]
+        overlap_ints['stop_ints'] = all_other_rows[stop_overlaps]
+        overlap_ints['contained_ints'] = all_other_rows[contained_overlaps]
+        overlap_ints['contained_within_ints'] = all_other_rows[contained_within_overlaps]
+
+        return  overlap_ints
+
+    n_events = ints.shape[0]
+    good_rows = np.zeros(n_events, dtype=np.bool)
+    for e_i in range(n_events):
+        cur_rows = np.delete(np.arange(n_events), e_i)
+        cur_overlapping_events = _find_overlapping_ints(ints[e_i,:], ints[cur_rows,:], cur_rows)
+
+        if (len(cur_overlapping_events['contained_within_ints']) == 0 and
+            len(cur_overlapping_events['contained_ints']) == 0 and
+            len(cur_overlapping_events['stop_ints']) <= 1 and
+            len(cur_overlapping_events['start_ints']) == 0):
+            good_rows[e_i] = True
+
+    return np.arange(n_events)[good_rows]
+
+
 # Helper functions go here
 
 
