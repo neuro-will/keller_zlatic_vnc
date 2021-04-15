@@ -86,7 +86,7 @@ def form_collection(image_folder: PathOrStr, tgt_folder: PathOrStr,
         os.makedirs(tgt_folder)
 
     # Generate the metadata file
-    generate_metadata_file(file_path=tgt_folder / 'metadata.yaml',
+    generate_metadata_file(file_path=tgt_folder / 'metadata.yml',
                            responsible=responsible,
                            description=description,
                            git_hashes=git_hashes,
@@ -249,7 +249,7 @@ def merge_collections(ind_collections: Sequence[PathOrStr], tgt_folder: PathOrSt
     n_collections = len(ind_collections)
     ind_metadata = [None]*n_collections
     for i, coll_i in enumerate(ind_collections):
-        with open(Path(coll_i) / 'metadata.yaml', 'rb') as f:
+        with open(Path(coll_i) / 'metadata.yml', 'rb') as f:
             yaml=ruamel.yaml.YAML(typ='rt')
             ind_metadata[i] = yaml.load(f)
 
