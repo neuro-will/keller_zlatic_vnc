@@ -857,6 +857,105 @@ def test_for_different_than_avg_beta(beta: np.ndarray, acm: np.ndarray, n_grps: 
     return p_vls, detected
 
 
+def test_for_diff_than_mean_vls(stats: dict, beh_trans: Sequence[Tuple[str]], mn_th:float = 1e-10) -> dict:
+    """ This is a helper function which calculates post-hoc statistics for each group.
+
+    A group are all transitions that start with the same behavior.
+
+    For a coefficient in each group, we calculate the p-value that it's value is not larger than the mean of all
+    other coefficients in the group.
+
+    If there is only one transition in a group (e.g., for a given start behavior, we only have transitions into
+    a single end behavior, we also set the p-value of these coefficients to 1.)
+
+    We return all p-values in a single vector, for ease of integration with plotting code, but it should be remembered
+    that coefficinets were compared within groups.
+
+    Note: Before computing any stats, this function first makes sure there is a large enough numerical diference between
+    the coefficients for the individual behaviors.  If there is not, then beta is set to 0 for all behaviors and p values of 1
+    are returned.  We do this to avoid issues that might arise with limited floating point precision when measuring very
+    small differences between means. If the differences are small enough that floating point issues become a concern, then
+    they are not of interest to us anyways, so we lose nothing by doing this.  We determine if numerical issues may be a concern
+    by fist computing the average of all coefficients and checking if all coefficients are within mn_th of this mean. If this
+    is the case, we determine the values are too near one another.
+
+    Args:
+
+        stats: Dictionary of statistical results, as saved by spont_events_initial_stats_calculation
+
+        beh_trans: list of behavior transitions stats were run over, as saved by
+        spont_events_initial_stats_calculation
+
+        mn_th: The threshold to apply when determininig of coefficients for different behaviors are different enough
+        to justify performing further statistics (see note above)
+
+    Returns:
+
+        new_stats: Dictionary with the keys:
+            'beta': The difference in the coefficient for each behavior from the mean of the others in its group. Values
+            are ordered to correspond to the behaviors in beh_trans.
+
+            'eq_mean_p': The p-value testing that each value of beta is different than 0.
+
+    """
+
+    n_coefs = len(beh_trans)
+    p_vls = np.zeros(n_coefs)
+    beta = np.zeros(n_coefs)
+
+    unique_grp_behs = set([t[0] for t in beh_trans])
+
+    # Do a quick check to see that mean values for each behavior were different enough to even warrnat doing
+    # stats.  If values were too close, we are going to run into floating points issues, and if the differences
+    # were that small anyway, we lose nothing by not checking for differences
+    mn_diffs = np.abs(stats['beta'] - np.mean(stats['beta']))
+    if np.all(mn_diffs < mn_th):
+        new_stats = dict()
+        new_stats['beta'] = beta
+        new_stats['eq_mean_p'] = np.ones(n_coefs)
+        return new_stats
+
+    # Process results for each group
+    for grp_b in unique_grp_behs:
+        keep_cols = np.asarray(np.argwhere([1 if b[0] == grp_b else 0 for b in beh_trans])).squeeze()
+
+        p_vls[keep_cols] = 1 # Initially set all p-values to this group to 1, we will set the p-value
+                             # for the largest coefficient in the code below, but do denote that the
+                             # coefficients which are not largest are not to be considered, we set their
+                             # p-values to 1.
+
+        if keep_cols.ndim > 0: # Means we have more than one coefficient
+            grp_beta = stats['beta'][keep_cols]
+            grp_acm = stats['acm'][np.ix_(keep_cols, keep_cols)]
+            if not np.all(np.diag(grp_acm) == np.zeros(grp_acm.shape[0])):
+                n_grps = stats['n_grps']
+                # Note: alpha below is not important for this function, since we record p-values
+                grp_p_vls, _  = test_for_different_than_avg_beta(beta=grp_beta, acm=grp_acm, n_grps=n_grps, alpha=.05)
+                p_vls[keep_cols] = grp_p_vls
+
+                n_grp_coefs = len(grp_beta)
+                new_grp_beta = np.zeros(n_grp_coefs)
+                for b_i in range(n_grp_coefs):
+                    new_grp_beta[b_i] = grp_beta[b_i] - ((np.sum(grp_beta) - grp_beta[b_i])/(n_grp_coefs - 1))
+
+                beta[keep_cols] = new_grp_beta
+            else:
+                pass
+                # We don't need to do anything - because we already set all p_vls for this group to 1
+        else:
+            pass
+            # We don't need to do anything - because we already set all p_vls for this group to 1
+
+
+
+    new_stats = dict()
+    new_stats['beta'] = beta
+    new_stats['eq_mean_p'] = p_vls
+
+    return new_stats
+
+
+
 def test_for_largest_amplitude_beta(beta: np.ndarray, acm: np.ndarray, n_grps: int, alpha: float,
                                     test_for_largest: bool = True) -> Tuple[int, bool, np.ndarray]:
     """ Detects the largest or smallest value in a beta vector if there is statistical significance to do so.
@@ -923,79 +1022,6 @@ def test_for_largest_amplitude_beta(beta: np.ndarray, acm: np.ndarray, n_grps: i
     return ind, detected, p_vls
 
 
-def find_usable_decision_events(ints: np.ndarray):
-    """
-    Finds events that are appropriate to use when looking for decision neurons.
-
-    Usable events are those which are:
-
-        1) Completely disjoint from all other events
-
-        OR
-
-        2) Overlap with only one other event, which starts before it.
-
-    The logic here is that a wave for one event may be ending when another is starting.
-
-    Args:
-        ints: The intervals of events. Each row is an interval.  The first column gives the starting index
-        and the second column gives the end index + 1 (so the convention for representing intervals
-        is the same used in slices.  For example, in interval that covered indices 0, 1 & 2, would have
-        a start index of 0 and an end index of 3.)
-
-    Returns:
-        usable_ints: The row indices of events which are usable.
-
-        disjoint_ints: The row indices of ints which correspond to disjoint intervals
-
-    """
-
-    def _find_overlapping_ints(query_int, all_other_ints, all_other_rows):
-
-        # Make end indices inclusive
-        start_ind = query_int[0]
-        stop_ind = query_int[1] - 1
-        all_other_ints[:, 1] = all_other_ints[:, 1] - 1
-
-        # Find intervals where the query interval only overlap their start
-        start_overlaps = np.logical_and(all_other_ints[:, 0] >= start_ind,
-                                        all_other_ints[:, 0] <= stop_ind)
-
-        # Find intervals where the query interval only overlaps their end
-        stop_overlaps = np.logical_and(all_other_ints[:, 1] >= start_ind,
-                                        all_other_ints[:, 1] <= stop_ind)
-
-        # Find intervals where the query interval contains the start and stop of the other intervals
-        contained_overlaps = np.logical_and(all_other_ints[:, 0] >= start_ind,
-                                            all_other_ints[:, 1] <= stop_ind)
-
-        # Find intervals where the query interval is contained with them
-        contained_within_overlaps = np.logical_and(all_other_ints[:, 0] <= start_ind,
-                                                   all_other_ints[:, 1] >= stop_ind)
-
-        overlap_ints = dict()
-        overlap_ints['start_ints'] = all_other_rows[start_overlaps]
-        overlap_ints['stop_ints'] = all_other_rows[stop_overlaps]
-        overlap_ints['contained_ints'] = all_other_rows[contained_overlaps]
-        overlap_ints['contained_within_ints'] = all_other_rows[contained_within_overlaps]
-
-        return  overlap_ints
-
-    n_events = ints.shape[0]
-    good_rows = np.zeros(n_events, dtype=np.bool)
-    for e_i in range(n_events):
-        cur_rows = np.delete(np.arange(n_events), e_i)
-        cur_overlapping_events = _find_overlapping_ints(ints[e_i,:], ints[cur_rows,:], cur_rows)
-
-        if (len(cur_overlapping_events['contained_within_ints']) == 0 and
-            len(cur_overlapping_events['contained_ints']) == 0 and
-            len(cur_overlapping_events['stop_ints']) <= 1 and
-            len(cur_overlapping_events['start_ints']) == 0):
-            good_rows[e_i] = True
-
-    return np.arange(n_events)[good_rows]
-
-
 # Helper functions go here
 
 
@@ -1006,4 +1032,7 @@ def _stim_stats_f(dff_base, dff_cmp, g_i, n_perms_i):
     stats = {'p': p}
     stats['beta'] = beta
     return stats
+
+
+
 

@@ -19,7 +19,7 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 # ======================================================================================================================
 
 # File with calculated statistics
-results_file = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject_spont_stats\spont_1_5_5_long_bl_co_4_start_locked_0_6_ece_prepooled_post_tc_mean_cmp_stats.pkl'
+results_file = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject_small_window_sweep\beh_stats_neg_18_3_turns_broken_out_mean_cmp_stats.pkl'
 
 # Specify location of overlay files
 overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.png',
@@ -66,7 +66,7 @@ make_whole_brain_videos_and_max_projs(rs=plot_rs,
                                       roi_group=roi_group,
                                       save_supp_str='',
                                       gen_mean_movie=True,
-                                      gen_mean_tiff=False,
+                                      gen_mean_tiff=True,
                                       gen_coef_movies=False,
                                       gen_coef_tiffs=True,
                                       gen_p_value_movies=False,

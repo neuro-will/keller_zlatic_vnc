@@ -19,8 +19,8 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import test_for_di
 # ======================================================================================================================
 
 ps = dict()
-ps['save_folder'] = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject_spont_stats'
-ps['basic_rs_file'] = 'spont_1_5_5_long_bl_co_4_start_locked_0_6_ece_pre_tc_post_tc.pkl'
+ps['save_folder'] = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject_small_window_sweep'
+ps['basic_rs_file'] = 'beh_stats_neg_18_3_turns_broken_out.pkl'
 
 # ======================================================================================================================
 # Code starts here

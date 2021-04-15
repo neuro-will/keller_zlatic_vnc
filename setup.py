@@ -24,6 +24,7 @@ setup(
 	"pandas",
 	"pyqtgraph",
 	"pyspark",
+    "ruamel.yaml",
 	"scikit-image",
     "sphinx",
     "tifffile",

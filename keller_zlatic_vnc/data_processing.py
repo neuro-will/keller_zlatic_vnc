@@ -845,7 +845,7 @@ def count_unique_subjs_per_transition(table: pd.DataFrame, behs: Sequence[str] =
     return pd.DataFrame(n_subjs_per_trans, index=behs, columns=behs)
 
 
-def find_clean_events(annotations: pd.DataFrame) -> np.ndarray:
+def find_clean_events(annotations: pd.DataFrame, clean_def: str = 'disjont') -> np.ndarray:
     """ Returns clean events from full annotations.
 
     Clean annotations are defined as those which:
@@ -855,6 +855,12 @@ def find_clean_events(annotations: pd.DataFrame) -> np.ndarray:
     Args:
         annotations: The annotations to search for clean events in
 
+        clean_def: The definition of a clean events.  Options are:
+
+            disjoint: A clean event must not intersect any other events
+
+            decision: A clean event can only intersect at most one other event that starts and ends before it
+
     Returns:
         keep_events: A boolean array which can be used to index annotations to return only the clean events
     """
@@ -862,7 +868,13 @@ def find_clean_events(annotations: pd.DataFrame) -> np.ndarray:
     # Find events that don't overlap with any others
     ints = copy.deepcopy(annotations[['start', 'end']].to_numpy())
     ints[:, 1] = ints[:, 1] + 1 # Account for inclusive end indexing in the original data
-    disjoint_events = find_disjoint_intervals(ints)
+
+    if clean_def == 'disjoint':
+        disjoint_events = find_disjoint_intervals(ints)
+    elif clean_def == 'decision':
+        disjoint_events = find_usable_decision_events(ints)
+    else:
+        raise(ValueError('The clean_def ' + clean_def + ' is not recognized.'))
 
     return disjoint_events
 
@@ -870,8 +882,11 @@ def find_clean_events(annotations: pd.DataFrame) -> np.ndarray:
 def find_before_and_after_events(events: pd.DataFrame, all_events: pd.DataFrame) -> pd.DataFrame:
     """ Finds events before and after a given set of events of interest.
 
-    A preceeding event is defined as the one with the end time closest to the start time of an event of interest.
-    A succeeding event is defined as the one with the start time closest to the end time of an event of interest.
+    A preceeding event is defined as the one the largest differene between it's end time and the start of
+    the event of interest, provided it does not end simultaneously with or after the event of interest
+
+    A succeeding event is defined as the one with the largest negative difference between it's start time
+    and the end of the event of interst, provided it does not start simultaneously with or before the event of interst.
 
     Note: If an event was not preceeded or suceeded by an event OR there was more than one preceeding or succeeding
     events equally close to the event of interest, than the before or after values returned for the event of
@@ -912,7 +927,7 @@ def find_before_and_after_events(events: pd.DataFrame, all_events: pd.DataFrame)
         pull_end = all_events['end'][pull_indices].to_numpy()
 
         before_time_diffs = (pull_end - cur_start).astype('float')
-        before_time_diffs[before_time_diffs > 0] = -np.inf
+        before_time_diffs[(pull_end - cur_end) >= 0] = -np.inf # Weed out any events which start at the same time as or after the current one ends
         max_inds = np.argwhere(before_time_diffs == np.max(before_time_diffs)).squeeze(axis=1)
         if len(max_inds) == 1:
             before_index = pull_indices[max_inds[0]]
@@ -922,7 +937,7 @@ def find_before_and_after_events(events: pd.DataFrame, all_events: pd.DataFrame)
             row_data = [np.nan, np.nan, np.nan]
 
         after_time_diffs = (pull_start - cur_end).astype('float')
-        after_time_diffs[after_time_diffs < 0] = np.inf
+        after_time_diffs[(pull_start - cur_start) <= 0] = np.inf # Weed out any events which start at the same time as or before the current one starts
         min_inds = np.argwhere(after_time_diffs == np.min(after_time_diffs)).squeeze(axis=1)
         if len(min_inds) == 1:
             after_index = pull_indices[min_inds[0]]
@@ -945,7 +960,80 @@ def find_before_and_after_events(events: pd.DataFrame, all_events: pd.DataFrame)
     return before_after_events
 
 
-def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame) -> pd.DataFrame:
+def find_usable_decision_events(ints: np.ndarray):
+    """
+    Finds events that are appropriate to use when looking for decision neurons.
+
+    Usable events are those which are:
+
+        1) Completely disjoint from all other events
+
+        OR
+
+        2) Overlap with only one other event, which starts before it.
+
+    The logic here is that a wave for one event may be ending when another is starting.
+
+    Args:
+        ints: The intervals of events. Each row is an interval.  The first column gives the starting index
+        and the second column gives the end index + 1 (so the convention for representing intervals
+        is the same used in slices.  For example, in interval that covered indices 0, 1 & 2, would have
+        a start index of 0 and an end index of 3.)
+
+    Returns:
+        usable_ints: The row indices of events which are usable.
+
+        good_rows: Boolean array for rows into ints which correspond to usable intervals
+
+    """
+
+    def _find_overlapping_ints(query_int, all_other_ints, all_other_rows):
+
+        # Make end indices inclusive
+        start_ind = query_int[0]
+        stop_ind = query_int[1] - 1
+        all_other_ints[:, 1] = all_other_ints[:, 1] - 1
+
+        # Find intervals where the query interval only overlap their start
+        start_overlaps = np.logical_and(all_other_ints[:, 0] >= start_ind,
+                                        all_other_ints[:, 0] <= stop_ind)
+
+        # Find intervals where the query interval only overlaps their end
+        stop_overlaps = np.logical_and(all_other_ints[:, 1] >= start_ind,
+                                        all_other_ints[:, 1] <= stop_ind)
+
+        # Find intervals where the query interval contains the start and stop of the other intervals
+        contained_overlaps = np.logical_and(all_other_ints[:, 0] >= start_ind,
+                                            all_other_ints[:, 1] <= stop_ind)
+
+        # Find intervals where the query interval is contained with them
+        contained_within_overlaps = np.logical_and(all_other_ints[:, 0] <= start_ind,
+                                                   all_other_ints[:, 1] >= stop_ind)
+
+        overlap_ints = dict()
+        overlap_ints['start_ints'] = all_other_rows[start_overlaps]
+        overlap_ints['stop_ints'] = all_other_rows[stop_overlaps]
+        overlap_ints['contained_ints'] = all_other_rows[contained_overlaps]
+        overlap_ints['contained_within_ints'] = all_other_rows[contained_within_overlaps]
+
+        return overlap_ints
+
+    n_events = ints.shape[0]
+    good_rows = np.zeros(n_events, dtype=np.bool)
+    for e_i in range(n_events):
+        cur_rows = np.delete(np.arange(n_events), e_i)
+        cur_overlapping_events = _find_overlapping_ints(ints[e_i,:], ints[cur_rows,:], cur_rows)
+
+        if (len(cur_overlapping_events['contained_within_ints']) == 0 and
+            len(cur_overlapping_events['contained_ints']) == 0 and
+            len(cur_overlapping_events['stop_ints']) <= 1 and
+            len(cur_overlapping_events['start_ints']) == 0):
+            good_rows[e_i] = True
+
+    return good_rows
+
+
+def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: str = 'disjoing') -> pd.DataFrame:
     """ Gets basic clean annotations from a set of full annotation.
 
     This function will:
@@ -965,6 +1053,8 @@ def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame) -> pd.DataF
 
         full_annots: The full annotations to produce clean annotations from
 
+        clean_def: The definition to use when searching for clean events
+
     Returns:
 
         basic_clean_annots: The final dataframe with the processed events.
@@ -975,7 +1065,7 @@ def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame) -> pd.DataF
     full_annots.dropna(inplace=True)
 
     # Now clean up events and note supplemental information
-    clean_annotations = full_annots[find_clean_events(full_annots)].copy()
+    clean_annotations = full_annots[find_clean_events(full_annots, clean_def=clean_def)].copy()
     supp_info = find_before_and_after_events(clean_annotations, full_annots)
     basic_clean_annots = pd.concat([clean_annotations, supp_info], axis=1)
 
