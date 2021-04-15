@@ -19,7 +19,7 @@ PathOrStr = Union[Path, str]
 
 
 def form_collection(image_folder: PathOrStr, tgt_folder: PathOrStr,
-                    responsible: List[str], description: str,
+                    responsible: List[str], description: str, git_hashes: dict,
                     preceding_behs: List[str], suceeding_behs: List[str],
                     params: Sequence[dict], ignore_extensions: Sequence[str]):
     """ Forms a collection of maps and associated files.
@@ -57,6 +57,9 @@ def form_collection(image_folder: PathOrStr, tgt_folder: PathOrStr,
 
         description: A string describing the collection.
 
+        git_hashes: Keys in this dictionary are the names of repositories.  Values give SHA-1 hashes of commits
+        used to generate the results.
+
         preceding_behs: A list of preceding behaviors represented in the maps
 
         succeeding_behs: A list of succeeding behaviors represented in the maps
@@ -86,6 +89,7 @@ def form_collection(image_folder: PathOrStr, tgt_folder: PathOrStr,
     generate_metadata_file(file_path=tgt_folder / 'metadata.yaml',
                            responsible=responsible,
                            description=description,
+                           git_hashes=git_hashes,
                            preceding_behs=preceding_behs,
                            succeeding_behs=suceeding_behs,
                            params=params)
@@ -109,9 +113,8 @@ def form_collection(image_folder: PathOrStr, tgt_folder: PathOrStr,
                 shutil.copyfile(image_folder / file, tgt_file)
 
 
-def generate_metadata_file(file_path: Path, description: str, responsible: List[str],
-                           preceding_behs: Sequence[str], succeeding_behs: Sequence[str],
-                           params: Sequence[dict]):
+def generate_metadata_file(file_path: Path, description: str, responsible: List[str], git_hashes: dict,
+                           preceding_behs: Sequence[str], succeeding_behs: Sequence[str], params: Sequence[dict]):
     """  Generates a new metadata file.
 
     Args:
@@ -121,6 +124,9 @@ def generate_metadata_file(file_path: Path, description: str, responsible: List[
         description: A string describing the collection.
 
         responsible: A list of those who are responsible for the collection
+
+        git_hashes: A dictionary.  Keys are repository names and values are hashes indicating specific commits
+        the results in the collection were generated for.
 
         preceding_behs: A list of preceding behaviors represented in the maps
 
@@ -149,6 +155,8 @@ def generate_metadata_file(file_path: Path, description: str, responsible: List[
 
         cur_time = datetime.datetime.now().isoformat()
         yaml.dump({'creation_time': cur_time}, f)
+
+        yaml.dump({'git_hashes': git_hashes}, f)
 
         m = CommentedMap()
         m.insert(1, 'preceding_behaviors', preceding_behs,
@@ -216,14 +224,14 @@ def merge_collections(ind_collections: Sequence[PathOrStr], tgt_folder: PathOrSt
         metadata structures, when copying files from each individual collection to the merged collection
         these will be noted in the file names, as explained above.  However, some entries in a metadata
         structure, such as the description and creation time, should be ignored for this purpose, and the
-        user can specify those keys here.  Note that the keys 'description and 'creation_time' will always
-        be ignored.
+        user can specify those keys here.  Note that the keys 'description', 'creation_time'
+        'janelia_core' and 'keller_zlatic_vnc' will always be ignored.
 
         ignore_extensions: The extensions of any files that should not be included in the merged collection.
 
     """
 
-    ALWAYS_IGNORE_KEYS = ['description', 'creation_time']
+    ALWAYS_IGNORE_KEYS = ['description', 'creation_time', 'janelia_core', 'keller_zlatic_vnc']
 
     if ignore_keys is not None:
         ignore_keys = ignore_keys + ALWAYS_IGNORE_KEYS
