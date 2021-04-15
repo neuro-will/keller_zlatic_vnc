@@ -268,7 +268,7 @@ def merge_collections(ind_collections: Sequence[PathOrStr], tgt_folder: PathOrSt
         os.makedirs(tgt_folder)
 
     # Save the new merged metadata structure
-    with open(tgt_folder / 'metadata.yaml', 'wb') as f:
+    with open(tgt_folder / 'metadata.yml', 'wb') as f:
         yaml = ruamel.yaml.YAML()
         yaml.default_flow_style = False
         yaml.dump(merged_metadata, f)
