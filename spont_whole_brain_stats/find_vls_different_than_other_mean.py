@@ -1,59 +1,46 @@
 """
-
-Given a set of basic statistical results, which give coefficients for individual transitions,
-this script will search for coefficients which are different than mean of all other coefficients. We do this
-for each coefficient and record the p-values.
-
-This will save results in a format that is conducive for working with existing plotting code.
+A script for batch post-processing a set of initial model fits.
 
 """
 
-import multiprocessing as mp
+import copy
+import glob
 from pathlib import Path
-import pickle
+import re
 
-from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import test_for_diff_than_mean_vls
+from keller_zlatic_vnc.whole_brain.spontaneous import parallel_test_for_diff_than_mean_vls
 
 # ======================================================================================================================
-# Parameters go here
+# Base parameters go here.
+#
+# These will be modified and added to when passing them to the post-processing function for each result
 # ======================================================================================================================
+# Basic parameters go here
+base_ps = dict()
 
-ps = dict()
-ps['save_folder'] = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject_small_window_sweep'
-ps['basic_rs_file'] = 'beh_stats_neg_18_3_turns_broken_out.pkl'
+# Provide a folder for which we should search for results to post process
+base_ps['save_folder'] = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject\spont_window_sweep\ind_collections'
 
 # ======================================================================================================================
 # Code starts here
 # ======================================================================================================================
 
+# Search for files to post-process
+pkl_files = glob.glob(str(Path(base_ps['save_folder']) / '*.pkl'))
+
+# Filter out post processed results
+pkl_files = [f for f in pkl_files if re.match('.*mean_cmp_stats.pkl', f) is None]
+
+n_results = len(pkl_files)
+
 if __name__ == '__main__':
+    for f_i, f in enumerate(pkl_files):
+        ps = copy.deepcopy(base_ps)
+        ps['basic_rs_file'] = Path(f).name
 
-    # ======================================================================================================================
-    # Load basic results
-    # ======================================================================================================================
-    with open(Path(ps['save_folder']) / ps['basic_rs_file'], 'rb') as f:
-        basic_rs = pickle.load(f)
+        print('****************************************************************************************')
+        print('Post-processing results ' + str(f_i + 1) + ' of ' + str(n_results) + '.')
+        parallel_test_for_diff_than_mean_vls(ps=ps)
 
-    beh_trans = basic_rs['beh_trans']
 
-    print('Done loading results from: ' + str(ps['basic_rs_file']))
-    n_cpu = mp.cpu_count()
-    with mp.Pool(n_cpu) as pool:
-        all_mean_stats = pool.starmap(test_for_diff_than_mean_vls,
-                                      [(s, beh_trans) for s in basic_rs['full_stats']])
-
-    # ==================================================================================================================
-    # Now save our results
-    # ==================================================================================================================
-
-    rs = {'ps': ps, 'full_stats': all_mean_stats, 'beh_trans': basic_rs['beh_trans']}
-
-    save_folder = ps['save_folder']
-    save_name = ps['basic_rs_file'].split('.')[0] + '_mean_cmp_stats.pkl'
-
-    save_path = Path(save_folder) / save_name
-    with open(save_path, 'wb') as f:
-        pickle.dump(rs, f)
-
-    print('Done.  Results saved to: ' + str(save_path))
 

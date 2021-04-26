@@ -76,6 +76,27 @@ BASIN_SEG_CODES = {1: 'T1 L+R',
                    12: 'A9 L+R'}
 
 
+def calc_dff(f: np.ndarray, b: np.ndarray, background: float, ep: float) -> np.ndarray:
+    """ Function for calculating dff as:
+
+        dff = (f-b)/(b-background + ep).
+
+    Args:
+        f: fluurescence over time
+
+        b: baseline over time, of same shape as f
+
+        background: background value
+
+        ep: value to add to the denominator to promote stable calculations of dff
+
+    Returns:
+
+        dff: The calcualted dff
+     """
+    return (f-b)/(b-background+ep)
+
+
 def combine_turns(tbl: pd.DataFrame):
     """ Combines annotations for TL and TR into a single T annotation in a transition table.
 
@@ -1033,7 +1054,7 @@ def find_usable_decision_events(ints: np.ndarray):
     return good_rows
 
 
-def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: str = 'disjoing') -> pd.DataFrame:
+def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: str = 'disjoint') -> pd.DataFrame:
     """ Gets basic clean annotations from a set of full annotation.
 
     This function will:
