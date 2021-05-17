@@ -225,13 +225,14 @@ def merge_collections(ind_collections: Sequence[PathOrStr], tgt_folder: PathOrSt
         these will be noted in the file names, as explained above.  However, some entries in a metadata
         structure, such as the description and creation time, should be ignored for this purpose, and the
         user can specify those keys here.  Note that the keys 'description', 'creation_time'
-        'janelia_core' and 'keller_zlatic_vnc' will always be ignored.
+        'janelia_core', 'keller_zlatic_vnc' and 'suceeding_behaviors', will always be ignored.
 
         ignore_extensions: The extensions of any files that should not be included in the merged collection.
 
     """
 
-    ALWAYS_IGNORE_KEYS = ['description', 'creation_time', 'janelia_core', 'keller_zlatic_vnc']
+    ALWAYS_IGNORE_KEYS = ['description', 'creation_time', 'janelia_core', 'keller_zlatic_vnc',
+                          'suceeding_behaviors']
 
     if ignore_keys is not None:
         ignore_keys = ignore_keys + ALWAYS_IGNORE_KEYS
@@ -254,8 +255,6 @@ def merge_collections(ind_collections: Sequence[PathOrStr], tgt_folder: PathOrSt
             ind_metadata[i] = yaml.load(f)
 
     merged_metadata, diff_keys = merge_metadata(ind_metadata)
-
-    print(type(diff_keys[1]))
 
     # Overwrite the fields we need to in the merged metadata structure
     merged_metadata['description'] = new_desc
@@ -284,15 +283,15 @@ def merge_collections(ind_collections: Sequence[PathOrStr], tgt_folder: PathOrSt
         coll_files = os.listdir(coll_i)
         for src in coll_files:
             src_path = coll_i / src
-            if (src_path.name != 'metadata.yaml') and (src_path.suffix not in ignore_extensions):
+            if (src_path.name != 'metadata.yml') and (src_path.suffix not in ignore_extensions):
                 tgt_path = tgt_folder / (src_path.stem + coll_str + src_path.suffix)
                 if os.path.isdir(src_path):
-                    shutil.copytree(src_path, tgt_path)
+                    shutil.copytree(str(src_path), str(tgt_path))
                 else:
                     shutil.copy(src_path, tgt_path)
 
     # Generate the original collections metadata file
-    orig_coll_yaml_path = tgt_folder / 'original_collections.yaml'
+    orig_coll_yaml_path = tgt_folder / 'original_collections.yml'
     with open(orig_coll_yaml_path, 'wb') as f:
         yaml = ruamel.yaml.YAML()
         yaml.default_flow_style = False

@@ -71,7 +71,7 @@ base_ps['window_type'] = 'start_locked'  # 'whole_event' or 'start_locked'
 
 # If we are using a window locked to event start or stop, we give the relative offset and window length here
 base_ps['window_offset'] = [-18, -15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15, 18]
-base_ps['window_length'] = 3
+base_ps['window_length'] = [3, 6]
 
 # Specify if we only consider events where the extracted dff window is entirely contained within the event
 base_ps['enforce_contained_events'] = False
@@ -87,7 +87,7 @@ base_ps['pool_preceeding_turns'] = True
 base_ps['pool_succeeding_turns'] = [False, True]
 
 # The defintion we use for clean events
-base_ps['clean_event_def'] = ['disjoint'] # 'decision' or 'disjoint'
+base_ps['clean_event_def'] = ['disjoint', 'decision'] # 'decision' or 'disjoint'
 
 # List the types of behaviors we are interested in analyzing - this is for the behaviors we transition into. If None,
 # we don't filter events by behavior. If only using one set of behaviors, make sure to enclose that list in another list
@@ -148,8 +148,8 @@ for c_i, ps in enumerate(comb_ps):
         pickup_file = Path(ps['save_folder']) / ('.' + ps['save_name'])
         with open(pickup_file, 'wb') as f:
             pickle.dump(ps, f)
+        print('Analysis complete.  Results saved to: ' + str(Path(ps['save_folder']) / ps['save_name']))
     else:
         print('Discovered existing results.  ')
 
-    print('Analysis complete.  Results saved to: ' + str(Path(ps['save_folder']) / ps['save_name']))
 

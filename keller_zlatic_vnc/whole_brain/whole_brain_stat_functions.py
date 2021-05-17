@@ -2,6 +2,7 @@
 
 import copy
 import os
+import os.path
 from pathlib import Path
 import pickle
 from typing import Sequence, Tuple
@@ -575,14 +576,16 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
 
     # Save the mean image
     mn_image_path = save_folder_path / 'mean.tiff'
-    if gen_mean_tiff:
+    if gen_mean_tiff and (not os.path.isfile(mn_image_path)):
         imageio.mimwrite(mn_image_path, mn_img)
 
-    if gen_mean_movie:
+    mn_movie_path = str(save_folder_path / 'mean.mp4')
+    if gen_mean_movie and (not os.path.isfile(mn_movie_path)):
+
         mn_img_min_c_lim = np.percentile(mn_img, mean_img_clim_percs[0])
         mn_img_max_c_lim = np.percentile(mn_img, mean_img_clim_percs[1])
 
-        make_z_plane_movie(volume=mn_img, save_path=str(save_folder_path / 'mean.mp4'),
+        make_z_plane_movie(volume=mn_img, save_path=mn_movie_path,
                            cmap='gray', clim=(mn_img_min_c_lim, mn_img_max_c_lim),
                            title='Mean Image', cbar_label='$F$')
 
@@ -594,6 +597,9 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
 
     for v_i in range(n_vars):
         var_name = test_behs[v_i]
+
+        uber_file_name = var_name + '_' + save_supp_str + '_coef_p_vls_comb'
+        uber_movie_path = save_folder_path / (uber_file_name + '.mp4')
 
         coefs_image = np.zeros(im_shape, dtype=np.float32)
         # TODO: coefs_image should be initialized with all nan values.  Need to make sure code below can handle this.
@@ -613,17 +619,20 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
             p_vls_image[cur_voxel_inds] = p_vls[r_i]
             log_p_vls_image[cur_voxel_inds] = log_p_vls[r_i]
 
+
         if gen_coef_movies or gen_coef_tiffs or gen_uber_movies:
             coef_file_name = var_name + '_' + save_supp_str + '_coefs'
             coef_c_lim_vls = coef_clims(coefs, coef_clim_percs)
 
-            if gen_coef_tiffs:
-                tifffile.imwrite(save_folder_path / (coef_file_name + '.tiff'), coefs_image, compress=6,
+            coef_tiff_path = save_folder_path / (coef_file_name + '.tiff')
+            if gen_coef_tiffs and (not os.path.isfile(coef_tiff_path)):
+                tifffile.imwrite(coef_tiff_path, coefs_image, compress=6,
                                  metadata={'SuggestedMinSampleValue': coef_c_lim_vls[0],
                                            'SuggestedMaxSampleValue': coef_c_lim_vls[1]})
 
-            if gen_coef_movies or gen_uber_movies:
-                coef_movie_path = str(save_folder_path / (coef_file_name + '.mp4'))
+            coef_movie_path = str(save_folder_path / (coef_file_name + '.mp4'))
+            if ((gen_coef_movies and (not os.path.exists(coef_movie_path)))
+                or (gen_uber_movies and (not os.path.exists(uber_movie_path)))):
                 coef_movie_ax_pos = make_z_plane_movie(volume=coefs_image, save_path=coef_movie_path,
                                                        cmap=coef_cmap, clim=coef_c_lim_vls,
                                                        title=var_name, cbar_label='${\Delta F}/{F}$',
@@ -633,14 +642,16 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
             p_vl_file_name = var_name + '_' + save_supp_str + '_p_vls'
             p_vl_c_lim_vls = p_vl_clims(log_p_vls, min_p_val_perc)
 
-            if gen_p_value_tiffs:
-                tifffile.imwrite(save_folder_path / (p_vl_file_name + '.tiff'), log_p_vls_image, compress=6,
+            p_vl_tiff_path = save_folder_path / (p_vl_file_name + '.tiff')
+            if gen_p_value_tiffs and (not os.path.isfile(p_vl_tiff_path)):
+                tifffile.imwrite(p_vl_tiff_path, log_p_vls_image, compress=6,
                                  metadata={'SuggestedMinSampleValue': p_vl_c_lim_vls[0],
                                            'SuggestedMaxSampleValue': p_vl_c_lim_vls[1]})
 
-            if gen_p_value_movies or gen_uber_movies:
+            p_vl_movie_path = str(save_folder_path / (p_vl_file_name + '.mp4'))
+            if ((gen_p_value_movies and (not os.path.isfile(p_vl_movie_path)) or
+                (gen_uber_movies and (not os.path.isfile(uber_movie_path))))):
 
-                p_vl_movie_path = str(save_folder_path / (p_vl_file_name + '.mp4'))
                 make_z_plane_movie(volume=log_p_vls_image, save_path=p_vl_movie_path,
                                    cmap='gray_r', clim=p_vl_c_lim_vls,
                                    title=var_name, cbar_label='$\log_{10}(p)$',
@@ -654,12 +665,14 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
 
                 coefs_image_th[p_vls_image > th] = 0
 
+                filtered_coef_tiff_path = save_folder_path / (filtered_coef_file_name + '.tiff')
                 if gen_filtered_coef_tiffs:
-                    tifffile.imwrite(save_folder_path / (filtered_coef_file_name + '.tiff'), coefs_image_th, compress=6)
+                    tifffile.imwrite(filtered_coef_tiff_path, coefs_image_th, compress=6)
 
-                if gen_filtered_coef_movies:
+                filtered_coef_movie_path = str(save_folder_path / (filtered_coef_file_name + '.mp4'))
+                if gen_filtered_coef_movies and (not os.path.isfile(filtered_coef_movie_path)):
                     ax_pos = make_z_plane_movie(volume=coefs_image_th,
-                                                save_path=str(save_folder_path / (filtered_coef_file_name + '.mp4')),
+                                                save_path=filtered_coef_movie_path,
                                                 cmap=coef_cmap, clim=coef_clims(coefs, coef_clim_percs),
                                                 title=var_name + '$, p \leq$' + str(th), cbar_label='${\Delta F}/{F}$')
 
@@ -681,8 +694,9 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
             combined_planes = [np.squeeze(combined_vol[z, :, :, :]) for z in range(n_z_planes)]
 
             # Save tiff stacks of RGB volumes
-            if gen_combined_tiffs:
-                tifffile.imwrite(save_folder_path / (combined_file_name + '.tiff'), combined_vol_uint8, compress=6)
+            combined_tiff_path = save_folder_path / (combined_file_name + '.tiff')
+            if gen_combined_tiffs and (not os.path.exists(combined_tiff_path)):
+                tifffile.imwrite(combined_tiff_path, combined_vol_uint8, compress=6)
 
                 # Save colormaps for combined tiffs
                 combined_cmap_file = save_folder_path / (combined_file_name + '_cmap.pkl')
@@ -690,8 +704,10 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
                     pickle.dump(combined_cmap.to_dict(), f)
 
             # Make videos of RGB volumes
-            if gen_combined_movies or gen_uber_movies:
-                comb_movie_path = str(save_folder_path / (combined_file_name + '.mp4'))
+            comb_movie_path = str(save_folder_path / (combined_file_name + '.mp4'))
+            if ((gen_combined_movies and (not os.path.isfile(comb_movie_path))) or
+                (gen_uber_movies and (not os.path.isfile(uber_movie_path)))):
+
                 make_rgb_z_plane_movie(z_imgs=combined_planes,
                                        save_path=comb_movie_path,
                                        cmap=combined_cmap,
@@ -703,18 +719,17 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
                                        one_index_z_plane=True,
                                        ax_position=coef_movie_ax_pos)
 
-            if gen_combined_projs:
+            combined_proj_path = save_folder_path / (combined_file_name + '.png')
+            if gen_combined_projs and (not os.path.isfile(combined_proj_path)):
                 visualize_coef_p_vl_max_projs(vol=np.moveaxis(combined_vol, 0, 2), dim_m=np.asarray([1, 1, 5]),
                                               overlays=overlays,
                                               cmap=combined_cmap,
                                               cmap_coef_range=None, cmap_p_vl_range=None,
                                               title=var_name)
-                plt.savefig(save_folder_path / (combined_file_name + '.png'), facecolor=(0, 0, 0))
+                plt.savefig(combined_proj_path, facecolor=(0, 0, 0))
                 plt.close()
 
-        if gen_uber_movies:
-            uber_file_name = var_name + '_' + save_supp_str + '_coef_p_vls_comb'
-            uber_movie_path = save_folder_path / (uber_file_name + '.mp4')
+        if gen_uber_movies and (not os.path.isfile(uber_movie_path)):
             comb_movies(movie_paths=[coef_movie_path, p_vl_movie_path, comb_movie_path], save_path=uber_movie_path)
 
             if not gen_coef_movies:
