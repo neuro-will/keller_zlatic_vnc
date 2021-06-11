@@ -453,7 +453,7 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
         overlay_files: Paths to files that should be overlaid projections
 
         save_supp_str: A descriptive string to include in filenames when saving movie and image files.
-
+g
         gen_mean_movie: True if a movie of the mean (through time) of the example dataset sample should be generted.
 
         gen_mean_tiff: True if a tiff of the mean (through time) of the example dataset sample should be generted.
@@ -519,19 +519,20 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
     if roi_group is None:
         raise(ValueError('roi_group must be assigned'))
 
-    # Load and prepare the overlays
-    overlays = [imageio.imread(overlay_file) for overlay_file in overlay_files]
-    for o_i, overlay in enumerate(overlays):
-        new_overlay = np.zeros_like(overlay)
-        nz_inds = np.argwhere(overlay[:, :, 0] != 255)
-        for ind in nz_inds:
-            new_overlay[ind[0], ind[1], :] = 255 - overlay[ind[0], ind[1], :]
-            new_overlay[ind[0], ind[1], 3] = new_overlay[ind[0], ind[1], 0]
-        overlays[o_i] = new_overlay
+    # Load and prepare the overlays if we will need them
+    if gen_combined_projs:
+        overlays = [imageio.imread(overlay_file) for overlay_file in overlay_files]
+        for o_i, overlay in enumerate(overlays):
+            new_overlay = np.zeros_like(overlay)
+            nz_inds = np.argwhere(overlay[:, :, 0] != 255)
+            for ind in nz_inds:
+                new_overlay[ind[0], ind[1], :] = 255 - overlay[ind[0], ind[1], :]
+                new_overlay[ind[0], ind[1], 3] = new_overlay[ind[0], ind[1], 0]
+            overlays[o_i] = new_overlay
 
-    overlays[0] = np.flipud(overlays[0])  # Horizontal
-    overlays[1] = np.fliplr(overlays[1])[1:, 1:, :]  # Coronal
-    overlays[2] = np.fliplr(np.moveaxis(overlays[2], 0, 1))[1:, 1:, :]  # Sagital
+        overlays[0] = np.flipud(overlays[0])  # Horizontal
+        overlays[1] = np.fliplr(overlays[1])[1:, 1:, :]  # Coronal
+        overlays[2] = np.fliplr(np.moveaxis(overlays[2], 0, 1))[1:, 1:, :]  # Sagital
 
     test_behs = list(rs['beh_stats'].keys())
     n_rois = len(rs['beh_stats'][test_behs[0]]['p_values'])
