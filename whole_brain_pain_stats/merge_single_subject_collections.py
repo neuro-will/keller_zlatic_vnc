@@ -22,18 +22,18 @@ rs_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps'
 tgt_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps\single_subject_pain_maps'
 
 # A new description for the merged collection.
-new_description = ('In this analysis we look at results for the single EM specimen, analyzing spontaneous response ' +
+new_description = ('In this analysis we look at results for the single EM specimen, analyzing response ' +
                'to stimulus.  We sweep a window in time, to see how encoding changes relative to stimulus onset' +
-               'or offsets. The key script to run the statistical tests used to produce these maps is' +
-               'calc_single_subject_pain_stats.py and make_single_subj_pain_maps.py was used to generate the' +
-               'actual maps.')
+               'or offsets. We also vary the window length. The key script to run the statistical tests used to' +
+               'produce these maps is calc_single_subject_pain_stats.py and make_single_subj_pain_maps.py was ' +
+               ' used to generate the actual maps.')
 
 # ======================================================================================================================
 # Code goes here
 # ======================================================================================================================
 
 # Find all results
-rs_files = glob.glob(str(Path(rs_folder) / 'pain_maps*.pkl'))
+rs_files = glob.glob(str(Path(rs_folder) / 'pain*.pkl'))
 
 collections = [Path(f).parents[0] / (Path(f).stem + '_images') for f in rs_files]
 

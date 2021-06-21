@@ -40,22 +40,26 @@ base_ps['bl_ts_str'] = 'bl_1_5_5_long'
 base_ps['background'] = 100
 base_ps['ep'] = 20
 
+# Parameters for filtering events based on stimulus duration
+base_ps['min_stim_dur'] = 5
+base_ps['max_stim_dur'] = 15
+
 # Length of window we pull dff in from before the stimulus
 base_ps['n_before_tm_pts'] = 3
 
 # Specify if we align the after window to the end of the stimulus or the beginning of the stimulus, can be
 # either 'start' or 'end'
-base_ps['after_aligned'] = ['start', 'end']
+base_ps['after_aligned'] = ['start']
 
-# Offset from the start of the window for dff after the event and the last stimulus timep point.  An offset of 0,
+# Offset from the start of the window for dff after the event and the last stimulus time point.  An offset of 0,
 # means the first time point in the window will be the last time point the stimulus was delevered
-base_ps['after_offset'] = [0, 1, 2, 3, 4]
+base_ps['after_offset'] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
 # Length of window we pull dff in from after the stimulus
 base_ps['n_after_tm_pts'] = [1, 3]
 
 # Folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject_pain_maps'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject_pain_maps_v2'
 
 # String to save with file names
 base_ps['save_str'] = 'pain'

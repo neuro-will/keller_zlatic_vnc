@@ -1,23 +1,22 @@
 """ Tools to help with visualizing Keller Zlatic VNC data. """
 
-from typing import Sequence, Tuple
+from typing import Sequence, Union
 import numpy as np
 
-from janelia_core.visualization.custom_color_maps import generate_two_param_hsv_map
 from janelia_core.visualization.custom_color_maps import generate_two_param_norm_map
 from janelia_core.visualization.custom_color_maps import MultiParamCMap
 from janelia_core.visualization.volume_visualization import visualize_rgb_max_project
 
 
-def gen_coef_p_vl_cmap(coef_cmap, positive_clim: float, plims: Sequence[float], n_coef_clrs: int = 1024,
+def gen_coef_p_vl_cmap(coef_cmap, clims: Union[float, Sequence[float]], plims: Sequence[float], n_coef_clrs: int = 1024,
                        n_p_vl_vls: int = 1024)  -> MultiParamCMap:
     """ Generates a MultiParamCMap for a range of coefficient values as colors and p-values as the norm of colors.
 
     Args:
         coef_cmap: The colormap to draw coefficent colors from.
 
-        positive_clim: The largest positive value that colors should saturate for.  Negative values will saturate at the
-        negative of this value.
+        clims: If a single value, this is the largest positive and negative value that colors should saturate at.
+        If a sequence, clims[0] is the lower bound and clims[1] is the upper bound for color saturation.
 
         plims: plims[0] is the p-value at and below that values should saturate for.  plims[1] is the value for which
         values at and above are set to 0 (black).
@@ -33,7 +32,11 @@ def gen_coef_p_vl_cmap(coef_cmap, positive_clim: float, plims: Sequence[float], 
     if n_coef_clrs < 2 or n_p_vl_vls < 2:
         raise(ValueError('n_coef_clrs and n_p_vl_vls must be greater than 1'))
 
-    coef_step = 2*positive_clim/n_coef_clrs
+    if not isinstance(clims, Sequence):
+        clims = [-1*clims, clims]
+
+    c_range = clims[1] - clims[0]
+    coef_step = c_range/n_coef_clrs
 
     min_p_vl = plims[0]
     max_p_vl = plims[1]
@@ -44,11 +47,11 @@ def gen_coef_p_vl_cmap(coef_cmap, positive_clim: float, plims: Sequence[float], 
 
     p_vl_step = (max_p_vl - min_p_vl)/n_p_vl_vls
 
-    coef_range = (-positive_clim, positive_clim+coef_step, coef_step)
+    coef_range = (clims[0], clims[1]+coef_step, coef_step)
     p_vl_range = (max_p_vl+p_vl_step, min_p_vl, -p_vl_step)
 
     return generate_two_param_norm_map(clr_param_range=coef_range, norm_param_range=p_vl_range,
-                                       p1_cmap=coef_cmap, clims=(-positive_clim, positive_clim),
+                                       p1_cmap=coef_cmap, clims=clims,
                                        norm_lims=(max_p_vl, min_p_vl))
 
 

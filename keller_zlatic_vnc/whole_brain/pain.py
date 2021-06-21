@@ -22,7 +22,8 @@ from keller_zlatic_vnc.data_processing import read_full_annotations
 def single_subject_pain_stats(analyze_subj: str, annot_folders: List[str], volume_loc_file: str, dataset_folder: str,
                               dataset_base_folder: str, f_ts_str: str, bl_ts_str: str, background: float,
                               ep: float, n_before_tm_pts: int, after_aligned: str, after_offset: int,
-                              n_after_tm_pts: int, save_folder: str, save_name: str):
+                              n_after_tm_pts: int, save_folder: str, save_name: str, min_stim_dur: int = 0,
+                              max_stim_dur: int = 100):
     """ A function for detecting rois with significant responses to the optogenetic stimulus.
 
     This function will:
@@ -76,6 +77,13 @@ def single_subject_pain_stats(analyze_subj: str, annot_folders: List[str], volum
 
         save_name: Name of file to save results in
 
+        min_stim_dur: In conjunction with max_stim_dur, filters events included in the analysis based on their
+        stimulus duration.  Specifically, only events with a stimulus duration within the (inclusive) bounds
+        defined by min_stim_dur and max_stim_dur will be included in the analysis.
+
+        max_stim_dur: In conjunction with min_stim_dur, used to filter events to include in the analysis based
+        on stimulus duration (see min_stim_dur for more details).
+
     """
 
     # ==================================================================================================================
@@ -116,6 +124,14 @@ def single_subject_pain_stats(analyze_subj: str, annot_folders: List[str], volum
     # Down select to only stimulus events
     keep_inds = [i for i in annotations.index if annotations['beh'][i] == 'S']
     annotations = annotations.iloc[keep_inds]
+
+    # ==================================================================================================================
+    # Down select based on stimulus duration
+    durations = annotations['end'] - annotations['start'] + 1
+    good_durations = (durations >= min_stim_dur) & (durations <= max_stim_dur)
+    annotations = annotations[good_durations]
+
+    print(annotations)
 
     # ==================================================================================================================
     # Now we read in the $\frac{\Delta F}{F}$ data for the subject
@@ -211,6 +227,8 @@ def single_subject_pain_stats(analyze_subj: str, annot_folders: List[str], volum
           'after_aligned': after_aligned,
           'after_offset': after_offset,
           'n_after_tm_pts': n_after_tm_pts,
+          'min_stim_dur': min_stim_dur,
+          'max_stim_dur': max_stim_dur,
           'save_folder': save_folder,
           'save_name': save_name}
 

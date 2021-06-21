@@ -14,10 +14,10 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 
 # Specify folder results are saved in
 
-results_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps'
+results_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps_v2'
 
 # Provide a string for specifying the results file
-rs_reg_str = 'pain_maps*.pkl'
+rs_reg_str = 'pain*.pkl'
 
 # Name of the roi group the results were generated for - currently, we can only generate results in batch if
 # they are all for the same rois
@@ -29,7 +29,10 @@ ex_dataset_file = r'K:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.correct
 p_vl_thresholds = [.05, .95]
 
 # Limits when visualizing coefficients
-coef_lims = [-1.5, 1.5]
+coef_lims = [.15, .4]
+
+# P-value at which brightness of maps saturates
+min_p_vl = .001
 
 # Find results to generate images and maps for
 results_files = glob.glob(str(Path(results_folder) / rs_reg_str))
@@ -55,13 +58,14 @@ for f in results_files:
                                           gen_coef_tiffs=True,
                                           gen_p_value_movies=False,
                                           gen_p_value_tiffs=True,
-                                          gen_filtered_coef_movies=False,
+                                          gen_filtered_coef_movies=True,
                                           gen_filtered_coef_tiffs=True,
                                           gen_combined_movies=False,
                                           gen_combined_tiffs=True,
-                                          p_vl_thresholds = p_vl_thresholds,
+                                          p_vl_thresholds=p_vl_thresholds,
                                           gen_combined_projs=False,
                                           gen_uber_movies=True,
                                           max_p_vl=.05,
+                                          min_p_vl=min_p_vl,
                                           coef_lims=coef_lims,
                                           ex_dataset_file=ex_dataset_file)

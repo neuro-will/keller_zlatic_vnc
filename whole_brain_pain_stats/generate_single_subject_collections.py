@@ -29,7 +29,7 @@ import re
 from keller_zlatic_vnc.collections import form_collection
 
 # Folder holding results
-rs_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps'
+rs_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps_v2'
 
 # Give path to a file holding parameters used to extract fluorescece
 f_extraction_params_file = r'K:\SV4\CW_17-08-23\L1-561nm-ROIMonitoring_20170823_145226.corrected\extracted\rois_1_5_5\extraction_params.pkl'
@@ -42,15 +42,17 @@ responsible = ['William Bishop <bishopw@hhmi.janelia.org>',
                'Andrew Champion <andrew.champion@gmail.com>']
 
 # Provide a description of the collection.
-description = ('In this analysis we look at results for the single EM specimen, analyzing spontaneous response ' +
-               'to stimulus.  We sweep a window in time, to see how encoding changes relative to stimulus onset' +
-               'or offsets. The key script to run the statistical tests used to produce these maps is' +
-               'calc_single_subject_pain_stats.py and make_single_subj_pain_maps.py was used to generate the' +
-               'actual maps.')
+description = ('This is the second iteration of looking at the single EM specimen response to pain.' +
+               ' Here we still sweep a window in time, to see how encoding changes relative to stimulus onset' +
+               ' and offset, while varying the window length.  But now in addition, we also analyze' +
+               ' the response to long and short stimulus events separately when using windows aligned to stim offset. ' +
+               ' The key script to run the statistical tests used to ' +
+               'produce these maps is calc_single_subject_pain_stats.py and make_single_subj_pain_maps.py was ' +
+               ' used to generate the actual maps.')
 
 # List hashes identify commits in git for the different pieces of code used to produce these results
 git_hashes = {'janelia_core': '0cc52fb406b985b274d222ee16b05ba20365715d',
-             'keller_zlatic_vnc': '2dc3d8bf3a2f609bb000cf6f20bc6916032321a6'}
+              'keller_zlatic_vnc': '5320ebcde2c3f7f5ab8b7342b2d3bf0357342d2c'}
 
 # List the parameters that should be included in the metadata file, with comments that should also be included
 f_extraction_yaml_fields = {'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}
@@ -60,10 +62,10 @@ baseline_calc_yaml_fields = {'window_length': 'Length of window used for baselin
                              'write_offset': "Offset between first point in window and the point the filtered output is assigned to.",
                              'p': 'The particular percentile used for percentile filtering.'}
 
-mdl_fitting_yaml_fields = {'n_before_tm_pts': 'Length of window for calculating DFF in before the stimulus.',
+mdl_fitting_yaml_fields = {'n_before_tm_pts': 'Length of window in imaging time points for calculating DFF in before the stimulus.',
                            'after_aligned': 'Specifies if the window for calculating DFF after the stimulus was aligned to stimulus onset of offset.',
-                           'after_offset': 'The offset in imaging volumes between the alignment point and the start of the window for calculating DFF in after the stimulus.',
-                           'n_time_pts_after': 'Length of window for calculating DFF in after the stimulus.'}
+                           'after_offset': 'The offset in imaging time points between the alignment point and the start of the window for calculating DFF in after the stimulus.',
+                           'n_after_tm_pts': 'Length of window in imaging time points for calculating DFF in after the stimulus.'}
 
 # ======================================================================================================================
 # Code goes here
@@ -77,7 +79,7 @@ with open(baseline_calc_params_file, 'rb') as f:
     baseline_calc_params = pickle.load(f)
 
 # Find all results
-rs_files = glob.glob(str(Path(rs_folder) / 'pain_maps*.pkl'))
+rs_files = glob.glob(str(Path(rs_folder) / 'pain*.pkl'))
 n_results = len(rs_files)
 
 for f_i, f in enumerate(rs_files):

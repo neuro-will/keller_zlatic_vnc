@@ -437,7 +437,7 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
                                           gen_combined_projs: bool = True, gen_uber_movies: bool = True,
                                           p_vl_thresholds: Sequence[float] = None,
                                           coef_clim_percs: Sequence[float] = None, coef_lims: Sequence[float] = None,
-                                          min_p_val_perc: float = 1.0, max_p_vl: float = .05,
+                                          min_p_val_perc: float = 1.0, max_p_vl: float = .05, min_p_vl: float = None,
                                           mean_img_clim_percs: Sequence[float] = None,
                                           ex_dataset_file: Path = None, roi_group: str = None, ):
     """ Generates movies and max projections given results of whole brain statistical tests.
@@ -488,9 +488,12 @@ g
         coef_lims: specifies fixed limits for coefficients; if provided coef_clim_percs is ignored.
 
         min_p_val_perc: specifies lower percentile we use for mapping p-values to colors - should be between 0 and 100.
-        If None, value of 1.0 is used.
+        If None, value of 1.0 is used. If min_p_vl is provided, this value is ignored.
 
         max_p_vl: specifies max p-value which is mapped to black.  If None, .05 is used.
+
+        min_p_vl: specified min p-value at which colors saturate.  If not provided, this is chosen based on
+        min_p_val_perc.
 
         mean_img_clim_percs: specifies percentiles we use for mapping min and max values to colors for mean image. v
         Values should be between 0 and 100.  If None, the value [0.1, 99.9] is used.
@@ -561,6 +564,8 @@ g
             return [-v, v]
 
     def p_vl_clims(vls, perc):
+        if min_p_vl is not None:
+            return [np.log10(min_p_vl), np.log10(max_p_vl)]
         small_v = np.percentile(vls, perc)
         if np.isinf(small_v):
             small_v = -100.0
@@ -620,7 +625,6 @@ g
             p_vls_image[cur_voxel_inds] = p_vls[r_i]
             log_p_vls_image[cur_voxel_inds] = log_p_vls[r_i]
 
-
         if gen_coef_movies or gen_coef_tiffs or gen_uber_movies:
             coef_file_name = var_name + '_' + save_supp_str + '_coefs'
             coef_c_lim_vls = coef_clims(coefs, coef_clim_percs)
@@ -663,18 +667,20 @@ g
                 filtered_coef_file_name = var_name + '_' + save_supp_str + '_coefs_p_th_' + str(th)
 
                 coefs_image_th = copy.deepcopy(coefs_image)
-
                 coefs_image_th[p_vls_image > th] = 0
+                coef_c_lim_vls = coef_clims(coefs, coef_clim_percs)
 
                 filtered_coef_tiff_path = save_folder_path / (filtered_coef_file_name + '.tiff')
                 if gen_filtered_coef_tiffs:
-                    tifffile.imwrite(filtered_coef_tiff_path, coefs_image_th, compress=6)
+                    tifffile.imwrite(filtered_coef_tiff_path, coefs_image_th, compress=6,
+                                     metadata={'SuggestedMinSampleValue': coef_c_lim_vls[0],
+                                               'SuggestedMaxSampleValue': coef_c_lim_vls[1]})
 
                 filtered_coef_movie_path = str(save_folder_path / (filtered_coef_file_name + '.mp4'))
                 if gen_filtered_coef_movies and (not os.path.isfile(filtered_coef_movie_path)):
                     ax_pos = make_z_plane_movie(volume=coefs_image_th,
                                                 save_path=filtered_coef_movie_path,
-                                                cmap=coef_cmap, clim=coef_clims(coefs, coef_clim_percs),
+                                                cmap=coef_cmap, clim=coef_c_lim_vls,
                                                 title=var_name + '$, p \leq$' + str(th), cbar_label='${\Delta F}/{F}$')
 
         if gen_combined_movies or gen_combined_tiffs or gen_combined_projs or gen_uber_movies:
@@ -682,7 +688,7 @@ g
 
             # Generate combined color map
             combined_cmap = gen_coef_p_vl_cmap(coef_cmap=coef_cmap,
-                                               positive_clim=coef_clims(coefs, coef_clim_percs)[1],
+                                               clims=coef_clims(coefs, coef_clim_percs),
                                                plims=p_vl_clims(log_p_vls, min_p_val_perc))
 
             # Make RGB volumes
