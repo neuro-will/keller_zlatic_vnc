@@ -16,18 +16,19 @@ import re
 from keller_zlatic_vnc.collections import merge_collections
 
 # Folder containing the original results and individual collections
-rs_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps'
+rs_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps_v2'
 
 # Folder where we should save the merged collection into
-tgt_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps\single_subject_pain_maps'
+tgt_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps_v2\single_subject_pain_maps_v2'
 
 # A new description for the merged collection.
-new_description = ('In this analysis we look at results for the single EM specimen, analyzing response ' +
-               'to stimulus.  We sweep a window in time, to see how encoding changes relative to stimulus onset' +
-               'or offsets. We also vary the window length. The key script to run the statistical tests used to' +
-               'produce these maps is calc_single_subject_pain_stats.py and make_single_subj_pain_maps.py was ' +
+new_description = ('This is the second iteration of looking at the single EM specimen response to pain.' +
+               ' Here we still sweep a window in time, to see how encoding changes relative to stimulus onset' +
+               ' and offset, while varying the window length.  But now in addition, we also analyze' +
+               ' the response to long and short stimulus events separately when using windows aligned to stim offset.' +
+               ' The key script to run the statistical tests used to' +
+               ' produce these maps is calc_single_subject_pain_stats.py and make_single_subj_pain_maps.py was' +
                ' used to generate the actual maps.')
-
 # ======================================================================================================================
 # Code goes here
 # ======================================================================================================================

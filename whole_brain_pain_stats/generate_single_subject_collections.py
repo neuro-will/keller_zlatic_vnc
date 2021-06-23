@@ -45,14 +45,14 @@ responsible = ['William Bishop <bishopw@hhmi.janelia.org>',
 description = ('This is the second iteration of looking at the single EM specimen response to pain.' +
                ' Here we still sweep a window in time, to see how encoding changes relative to stimulus onset' +
                ' and offset, while varying the window length.  But now in addition, we also analyze' +
-               ' the response to long and short stimulus events separately when using windows aligned to stim offset. ' +
-               ' The key script to run the statistical tests used to ' +
-               'produce these maps is calc_single_subject_pain_stats.py and make_single_subj_pain_maps.py was ' +
+               ' the response to long and short stimulus events separately when using windows aligned to stim offset.' +
+               ' The key script to run the statistical tests used to' +
+               ' produce these maps is calc_single_subject_pain_stats.py and make_single_subj_pain_maps.py was' +
                ' used to generate the actual maps.')
 
 # List hashes identify commits in git for the different pieces of code used to produce these results
 git_hashes = {'janelia_core': '0cc52fb406b985b274d222ee16b05ba20365715d',
-              'keller_zlatic_vnc': '5320ebcde2c3f7f5ab8b7342b2d3bf0357342d2c'}
+              'keller_zlatic_vnc': 'c0f9d4f613d9a3bbf0a0e93108ccdd45254601c0'}
 
 # List the parameters that should be included in the metadata file, with comments that should also be included
 f_extraction_yaml_fields = {'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}
@@ -65,7 +65,9 @@ baseline_calc_yaml_fields = {'window_length': 'Length of window used for baselin
 mdl_fitting_yaml_fields = {'n_before_tm_pts': 'Length of window in imaging time points for calculating DFF in before the stimulus.',
                            'after_aligned': 'Specifies if the window for calculating DFF after the stimulus was aligned to stimulus onset of offset.',
                            'after_offset': 'The offset in imaging time points between the alignment point and the start of the window for calculating DFF in after the stimulus.',
-                           'n_after_tm_pts': 'Length of window in imaging time points for calculating DFF in after the stimulus.'}
+                           'n_after_tm_pts': 'Length of window in imaging time points for calculating DFF in after the stimulus.',
+                           'min_stim_dur': 'Min number of time points the stimulus needed to be on for an event to be included in the analysis.',
+                           'max_stim_dur': 'Max number of time points the stimulus could be on for an event to be included in the analysis.'}
 
 # ======================================================================================================================
 # Code goes here
