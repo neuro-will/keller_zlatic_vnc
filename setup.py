@@ -21,6 +21,7 @@ setup(
 	"matplotlib",
     "numpy",
     "opencv_python",
+    "openpyxl",
 	"pandas",
 	"pyqtgraph",
 	"pyspark",

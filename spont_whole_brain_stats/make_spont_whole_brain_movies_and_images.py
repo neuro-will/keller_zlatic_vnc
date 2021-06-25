@@ -17,15 +17,15 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 
 # Specify folder results are saved in
 
-results_folder = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject\spont_window_sweep\ind_collections'
+results_folder = r'A:\projects\keller_vnc\results\single_subject\spont_window_sweep_v2\test0'
 
 # Provide a string suffix specifying the results file
 rs_suffix = '*mean_cmp_stats.pkl'
 
 # Specify location of overlay files - these are for max projections
-overlay_files = [r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\horz_mean.png',
-                 r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\cor_mean.png',
-                 r'\\dm11\bishoplab\projects\keller_vnc\data\overlays\sag_mean.png']
+overlay_files = [r'A:\projects\keller_vnc\data\overlays\horz_mean.png',
+                 r'A:\projects\keller_vnc\data\overlays\cor_mean.png',
+                 r'A:\projects\keller_vnc\data\overlays\sag_mean.png']
 
 # The string p-values are stored under
 p_vl_str = 'eq_mean_p' # 'non_zero_p' or 'non_max_p' or 'eq_mean_p'

@@ -236,11 +236,11 @@ def fit_init_models(ps: dict):
     # Filter events by the behavior transitioned into or from if we are suppose to
     if ps['behs'] is not None:
         keep_inds = [i for i in annotations.index if annotations['beh'][i] in ps['behs']]
-        annotations = annotations.iloc[keep_inds]
+        annotations = annotations.loc[keep_inds]
 
     if ps['pre_behs'] is not None:
         keep_inds = [i for i in annotations.index if annotations['beh'][i] in ps['pre_behs']]
-        annotations = annotations.iloc[keep_inds]
+        annotations = annotations.loc[keep_inds]
 
     # ==================================================================================================================
     # Pool preceeding turns if requested
@@ -258,7 +258,7 @@ def fit_init_models(ps: dict):
     # Remove self transitions if requested
     if ps['remove_st']:
         self_trans = annotations['beh_before'] == annotations['beh']
-        annotations = annotations.loc[self_trans]
+        annotations = annotations.loc[~self_trans]
 
     # ==================================================================================================================
     # Pool preceeding behaviors into one (G)rouped label if requested
@@ -340,6 +340,7 @@ def fit_init_models(ps: dict):
     # Generate our regressors and group indicator variables
     n_events = len(analyze_annotations)
     n_analyze_trans = len(analyze_trans)
+    print('Number of analyzed events: ' + str(n_events))
 
     unique_ids = analyze_annotations['subject_id'].unique()
     g = np.zeros(n_events)
@@ -357,30 +358,35 @@ def fit_init_models(ps: dict):
     dff = np.stack(analyze_annotations['dff'].to_numpy())
 
     n_analyze_subjs = len(analyze_subjs)
+    n_rois = dff.shape[1]
+    n_cpu = mp.cpu_count()
     if n_analyze_subjs > 1:
         print('Performing stats for multiple subjects.')
+        with mp.Pool(n_cpu) as pool:
+            full_stats = pool.starmap(_init_fit_multi_subj_stats_f, [(x, dff[:, r_i], g, ps['alpha']) for r_i in range(n_rois)])
 
-        def stats_f(x_i, y_i, g_i, alpha_i):
-            beta, acm, n_grps = grouped_linear_regression_ols_estimator(x=x_i, y=y_i, g=g_i)
-            stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
-            stats['beta'] = beta
-            stats['acm'] = acm
-            stats['n_grps'] = n_grps
-            return stats
+        #def stats_f(x_i, y_i, g_i, alpha_i):
+        #    beta, acm, n_grps = grouped_linear_regression_ols_estimator(x=x_i, y=y_i, g=g_i)
+        #    stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
+        #    stats['beta'] = beta
+        #    stats['acm'] = acm
+        #    stats['n_grps'] = n_grps
+        #    return stats
     else:
         print('Performing stats for only one subject.')
+        with mp.Pool(n_cpu) as pool:
+            full_stats = pool.starmap(_init_fit_single_subj_stats_f, [(x, dff[:, r_i], g, ps['alpha']) for r_i in range(n_rois)])
 
-        def stats_f(x_i, y_i, g_i, alpha_i):
-            n_grps = x_i.shape[0]
-            beta, acm = linear_regression_ols_estimator(x=x_i, y=y_i)
-            stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
-            stats['beta'] = beta
-            stats['acm'] = acm
-            stats['n_grps'] = n_grps
-            return stats
+        #def stats_f(x_i, y_i, g_i, alpha_i):
+        #    n_grps = x_i.shape[0]
+        #    beta, acm = linear_regression_ols_estimator(x=x_i, y=y_i)
+        #    stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
+        #    stats['beta'] = beta
+        #    stats['acm'] = acm
+        #    stats['n_grps'] = n_grps
+        #    return stats
 
-    n_rois = dff.shape[1]
-    full_stats = [stats_f(x_i=x, y_i=dff[:, r_i], g_i=g, alpha_i=ps['alpha']) for r_i in range(n_rois)]
+    #full_stats = [stats_f(x_i=x, y_i=dff[:, r_i], g_i=g, alpha_i=ps['alpha']) for r_i in range(n_rois)]
 
     # ==================================================================================================================
     # Now save our results
@@ -454,3 +460,21 @@ def parallel_test_for_diff_than_mean_vls(ps: dict):
         print('Found existing post-processed results. File: ' + str(save_path))
 
 
+# Helper functions go here
+
+def _init_fit_multi_subj_stats_f(x_i, y_i, g_i, alpha_i):
+    beta, acm, n_grps = grouped_linear_regression_ols_estimator(x=x_i, y=y_i, g=g_i)
+    stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
+    stats['beta'] = beta
+    stats['acm'] = acm
+    stats['n_grps'] = n_grps
+    return stats
+
+def _init_fit_single_subj_stats_f(x_i, y_i, g_i, alpha_i):
+            n_grps = x_i.shape[0]
+            beta, acm = linear_regression_ols_estimator(x=x_i, y=y_i)
+            stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
+            stats['beta'] = beta
+            stats['acm'] = acm
+            stats['n_grps'] = n_grps
+            return stats

@@ -31,11 +31,11 @@ from keller_zlatic_vnc.whole_brain.spontaneous import fit_init_models
 base_ps = dict()
 
 # Folders containing a4 and a9 annotation data
-base_ps['annot_folders'] = [[r'/groups/bishop/bishoplab/projects/keller_vnc/data/full_annotations/em_volume_behavior_csv']]
+base_ps['annot_folders'] = [[r'A:\projects\keller_vnc\data\full_annotations\em_volume_behavior_csv']]
 
 # File containing locations to registered volumes
 #ps['volume_loc_file'] = r'\\dm11\bishoplab\projects\keller_vnc\data\experiment_data_locations.xlsx'
-base_ps['volume_loc_file'] = r'/groups/bishop/bishoplab/projects/keller_vnc/data/EM_volume_experiment_data_locations.xlsx'
+base_ps['volume_loc_file'] = r'A:\projects\keller_vnc\data\EM_volume_experiment_data_locations.xlsx'
 
 # List subjects we do not want to include in the analysis
 base_ps['exclude_subjs'] = set(['CW_17-11-06-L2'])
@@ -69,7 +69,7 @@ base_ps['pool_preceeding_behaviors'] = True
 base_ps['pool_preceeding_turns'] = True
 
 # True if we want to pool succeeding left and right turns into one category
-base_ps['pool_succeeding_turns'] = [False, True]
+base_ps['pool_succeeding_turns'] = [True] #[False, True]
 
 base_ps['remove_st'] = True
 
@@ -94,14 +94,14 @@ base_ps['alpha'] = .05
 base_ps['window_type'] = 'start_locked'  # 'whole_event' or 'start_locked'
 
 # If we are using a window locked to event start or stop, we give the relative offset and window length here
-base_ps['window_offset'] = [0, 3, 6, 9, 12, 15, 18]
-base_ps['window_length'] = [3, 6]
+base_ps['window_offset'] = 0 #[0, 3, 6, 9, 12, 15, 18]
+base_ps['window_length'] = 3 #[3, 6]
 
 # Specify if we only consider events where the extracted dff window is entirely contained within the event
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'/groups/bishop/bishoplab/projects/keller_vnc/results/single_subject/spont_window_sweep_v2/ind_collections'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\spont_window_sweep_v2\test1'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
@@ -117,46 +117,48 @@ comb_ps = form_combinations_from_dict(base_ps)
 # Fit models for all combinations of parameters
 # ======================================================================================================================
 
-# Get a list of saved "pick up" files, saving the parameters for which we already have results - we can consult these
-# files to "pick up" where we left off in a crash occurs in the running of this script
-existing_pickup_files = glob.glob(str(Path(base_ps['save_folder']) / '.*.pkl'))
-n_existing_pickup_files = len(existing_pickup_files)
-existing_param_dicts = [None]*n_existing_pickup_files
-for f_i, pu_file in enumerate(existing_pickup_files):
-    with open(pu_file, 'rb') as f:
-        existing_param_dicts[f_i] = pickle.load(f)
-        del existing_param_dicts[f_i]['save_name']  # Remove save_name field, since this not in the ps dictionaries we
+if __name__ == '__main__':
+
+    # Get a list of saved "pick up" files, saving the parameters for which we already have results - we can consult these
+    # files to "pick up" where we left off in a crash occurs in the running of this script
+    existing_pickup_files = glob.glob(str(Path(base_ps['save_folder']) / '.*.pkl'))
+    n_existing_pickup_files = len(existing_pickup_files)
+    existing_param_dicts = [None]*n_existing_pickup_files
+    for f_i, pu_file in enumerate(existing_pickup_files):
+        with open(pu_file, 'rb') as f:
+            existing_param_dicts[f_i] = pickle.load(f)
+            del existing_param_dicts[f_i]['save_name']  # Remove save_name field, since this not in the ps dictionaries we
                                                     # check against
 
-for c_i, ps in enumerate(comb_ps):
-    print('===========================================================================================================')
-    print('Performing analysis ' + str(c_i + 1) + ' of ' + str(len(comb_ps)) + '.')
-    print('===========================================================================================================')
+    for c_i, ps in enumerate(comb_ps):
+        print('===========================================================================================================')
+        print('Performing analysis ' + str(c_i + 1) + ' of ' + str(len(comb_ps)) + '.')
+        print('===========================================================================================================')
 
-    # Before actually running results for this set of parameters, see if a set of results already exists in the save
-    # folder.
+        # Before actually running results for this set of parameters, see if a set of results already exists in the save
+        # folder.
 
-    # Remove the save_str field from ps here, since we don't want to save it (we replace with with save_name)
-    save_str = ps['save_str']
-    del ps['save_str']
+        # Remove the save_str field from ps here, since we don't want to save it (we replace with with save_name)
+        save_str = ps['save_str']
+        del ps['save_str']
 
-    results_exist = False
-    for d in existing_param_dicts:
-        if ps == d:
-            results_exist = True
-            break
+        results_exist = False
+        for d in existing_param_dicts:
+            if ps == d:
+                results_exist = True
+                break
 
-    if not results_exist:
-        ps['save_name'] = append_ts(save_str, no_underscores=True) + '.pkl'
+        if not results_exist:
+            ps['save_name'] = append_ts(save_str, no_underscores=True) + '.pkl'
 
-        fit_init_models(ps)
+            fit_init_models(ps)
 
-        # Save the parameter dictionary as a seperate file - this is so we can pick back up if this script crashes
-        pickup_file = Path(ps['save_folder']) / ('.' + ps['save_name'])
-        with open(pickup_file, 'wb') as f:
-            pickle.dump(ps, f)
-        print('Analysis complete.  Results saved to: ' + str(Path(ps['save_folder']) / ps['save_name']))
-    else:
-        print('Discovered existing results.  ')
+            # Save the parameter dictionary as a seperate file - this is so we can pick back up if this script crashes
+            pickup_file = Path(ps['save_folder']) / ('.' + ps['save_name'])
+            with open(pickup_file, 'wb') as f:
+                pickle.dump(ps, f)
+            print('Analysis complete.  Results saved to: ' + str(Path(ps['save_folder']) / ps['save_name']))
+        else:
+            print('Discovered existing results.  ')
 
 
