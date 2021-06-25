@@ -31,23 +31,47 @@ from keller_zlatic_vnc.whole_brain.spontaneous import fit_init_models
 base_ps = dict()
 
 # Folders containing a4 and a9 annotation data
-base_ps['annot_folders'] = [[r'\\dm11\bishoplab\projects\keller_vnc\data\full_annotations\em_volume_behavior_csv']]
+base_ps['annot_folders'] = [[r'/groups/bishop/bishoplab/projects/keller_vnc/data/full_annotations/em_volume_behavior_csv']]
 
 # File containing locations to registered volumes
 #ps['volume_loc_file'] = r'\\dm11\bishoplab\projects\keller_vnc\data\experiment_data_locations.xlsx'
-base_ps['volume_loc_file'] = r'\\dm11\bishoplab\projects\keller_vnc\data\EM_volume_experiment_data_locations.xlsx'
+base_ps['volume_loc_file'] = r'/groups/bishop/bishoplab/projects/keller_vnc/data/EM_volume_experiment_data_locations.xlsx'
 
 # List subjects we do not want to include in the analysis
 base_ps['exclude_subjs'] = set(['CW_17-11-06-L2'])
-
-# Specify the threshold we use (in number of stacks) to determine when a quiet transition has occured
-base_ps['q_th'] = 4
 
 # Subfolder containing the dataset for each subject
 base_ps['dataset_folder'] = 'extracted'
 
 # Base folder where datasets are stored
 base_ps['dataset_base_folder'] = r'K:\\SV4'
+
+# The defintion we use for clean events
+base_ps['clean_event_def'] = 'dj'  # 'dj' or 'po'
+
+# Specify the threshold we use (in number of stacks) to determine when a quiet transition has occurred
+base_ps['q_th'] = 55
+
+# Specify the cut off threshold we use (in number of stacks) to determine when a real transition has occurred
+base_ps['co_th'] = 3
+
+# Specify the set of behaviors transitioned into for events we analyze
+base_ps['behs'] = [['B', 'F', 'TL', 'TR', 'H']]
+
+# Specify the preceding behaviors for events we analyze
+base_ps['pre_behs'] = [['B', 'F', 'TL', 'TR', 'H', 'U']]
+
+# True if we want to pool preceeding behaviors
+base_ps['pool_preceeding_behaviors'] = True
+
+# True if we want to pool preceding left and right turns into one category (only applies if pool_preceeding_behaviors
+# is false)
+base_ps['pool_preceeding_turns'] = True
+
+# True if we want to pool succeeding left and right turns into one category
+base_ps['pool_succeeding_turns'] = [False, True]
+
+base_ps['remove_st'] = True
 
 # Data to calculate Delta F/F for in each dataset
 base_ps['f_ts_str'] = 'f_1_5_5'
@@ -63,38 +87,21 @@ base_ps['min_n_subjs'] = 1
 # Min number of events we must observe a transition in for us to analyze it
 base_ps['min_n_events'] = 5
 
-# Alpha value for thresholding p-values when calculating stats
+# Alpha value for thresholding p-values when calculating stats - this is not used in producing the final maps
 base_ps['alpha'] = .05
 
 # Specify the window we pull dff from
 base_ps['window_type'] = 'start_locked'  # 'whole_event' or 'start_locked'
 
 # If we are using a window locked to event start or stop, we give the relative offset and window length here
-base_ps['window_offset'] = [-18, -15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15, 18]
+base_ps['window_offset'] = [0, 3, 6, 9, 12, 15, 18]
 base_ps['window_length'] = [3, 6]
 
 # Specify if we only consider events where the extracted dff window is entirely contained within the event
 base_ps['enforce_contained_events'] = False
 
-# True if we want to pool preceeding behaviors
-base_ps['pool_preceeding_behaviors'] = True
-
-# True if we want to pool preceeding left and right turns into one category (only applies if pool_preceeding_behaviors
-# is false)
-base_ps['pool_preceeding_turns'] = True
-
-# True if we want to pool succeeding left and right turns into one category
-base_ps['pool_succeeding_turns'] = [False, True]
-
-# The defintion we use for clean events
-base_ps['clean_event_def'] = ['disjoint', 'decision'] # 'decision' or 'disjoint'
-
-# List the types of behaviors we are interested in analyzing - this is for the behaviors we transition into. If None,
-# we don't filter events by behavior. If only using one set of behaviors, make sure to enclose that list in another list
-base_ps['behaviors'] = [['B', 'F', 'H', 'TR', 'TL']]
-
 # Specify folder where we should save results
-base_ps['save_folder'] = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject\spont_window_sweep\ind_collections'
+base_ps['save_folder'] = r'/groups/bishop/bishoplab/projects/keller_vnc/results/single_subject/spont_window_sweep_v2/ind_collections'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended

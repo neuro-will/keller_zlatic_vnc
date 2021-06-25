@@ -16,6 +16,7 @@ from janelia_core.stats.regression import linear_regression_ols_estimator
 from janelia_core.stats.regression import grouped_linear_regression_acm_stats
 from janelia_core.stats.regression import grouped_linear_regression_ols_estimator
 
+from keller_zlatic_vnc.data_processing import apply_quiet_and_cutoff_times
 from keller_zlatic_vnc.data_processing import count_unique_subjs_per_transition
 from keller_zlatic_vnc.data_processing import count_transitions
 from keller_zlatic_vnc.data_processing import calc_dff
@@ -24,6 +25,7 @@ from keller_zlatic_vnc.data_processing import generate_standard_id_for_volume
 from keller_zlatic_vnc.data_processing import get_basic_clean_annotations_from_full
 from keller_zlatic_vnc.data_processing import read_full_annotations
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import test_for_diff_than_mean_vls
+
 
 def fit_init_models(ps: dict):
     """ Fits initial models to spontaneous activity.
@@ -35,36 +37,43 @@ def fit_init_models(ps: dict):
         annotation data as well as volume data will be analyzed.  (See the exclude_subjs argument for how to modify
         this).
 
-        2) Find "clean" spontaneous events for each subject (see below for how clean events are defined)
+        2) Find "clean" spontaneous events for each subject.  See the function get_basic_clean_annotations_from_full
+        for the options for defining clean events.
 
-        3) Filter events by the behavior that is transitioned into (if requested)
+        3) Apply a quiet and cut off time threshold to classify the preceding behavior for each event.  See
+        the function apply_quiet_and_cutoff_times for more information.
 
-        4) Apply a threshold to determine when an event is preceeded by a "quiet" period
+        3) Filter events by the behavior that is transitioned into and from (if requested).  Importantly, this is
+        done before any pooling of behaviors is done (see 4-6).
 
-        5) Pool preceeding behaviors into one group if requested (and/or pool preceeding/succeeding left and right
-        turns into a single turn behavior)
+        4) Optionally pool preceding and succeeding left and right turns into single turn behaviors.
 
-        6) Calculate Delta F/F for all events in a specified window for each event for all supervoxels (see options
+        5) Optionally remove any transitions to and from the same behavior.
+
+        6) Optionally group all preceding behaviors into a single (G)rouped label.
+
+        7) Calculate Delta F/F for all events in a specified window for each event for all supervoxels (see options
         below for specifying the placement of the window)
 
-        7) Remove any events where the window for Delta F/F fell outside the range of recorded data
+        8) Remove any events where the window for Delta F/F fell outside the range of recorded data
 
-        8) Optionally, remove any events where the window for Delta F/F fell outside the start and stop of the behavior
+        9) Optionally, remove any events where the window for Delta F/F fell outside the start and stop of the behavior
         transitioned into
 
-        9) Remove any transitions for consieration if we don't see enough of them in enough subjects or enough of them
-        across all subjects (two seperate criteria are applied)
+        10) Remove any transitions from consideration if we don't see enough of them in enough subjects or enough of them
+        across all subjects (two seperate criteria are applied, see below)
 
-        10) Fit statistical models on a per-voxel basis.  These statistical models estimate the dff for each transition,
+        11) Fit statistical models on a per-voxel basis.  These statistical models estimate the dff for each transition,
         accounting for correlated errors within subjects (if fitting to more than one subject).
 
-        11) Package the results
+        12) Package the results
 
     Note: One subject (CW_17-11-03-L6-2) has a different name for its saved volume.  If this subject is included
     in the analysis, this function will make sure the correct volume is used.
 
 
     Args:
+
         ps: A dictionary with the following keys:
 
             annot_folders: list of folders containing a4 and a9 annotation data
@@ -73,11 +82,34 @@ def fit_init_models(ps: dict):
 
             exlude_subjs: list subjects we do not want to include in the analysis
 
-            q_th: the threshold we use (in number of stacks) to determine when a quiet transition has occured
-
             dataset_folder: subfolder containing the dataset for each subject
 
             datast_base_folder: base folder where datasets are stored
+
+            clean_event_def: The defintion we use for clean events.  Options are:
+
+                dj: "Clean" events are those which have *no* overlap with any other event
+
+                po: A "clean" events can only intersect at most one other event that starts before it starts and
+                    ends before it ends.
+
+            q_th: the threshold we use (in number of stacks) to determine when a quiet transition has occurred
+
+            co_th: The threshold we use (in number of stacks) to determine when a real transition has occured
+
+            behs: If not None, the list of beheviors that are transitioned into to include in the analysis.  Any
+            events with a behavior that is transitioned into not in this list will be removed from the analysis.
+
+            pre_behs: If not None, the list of preceding behaviors that we transition from to include in the analysis.
+            Any events with preceding behaviors not in this list will be removed from the analysis.
+
+            pool_preceeding_behaviors: True if we want to pool preceeding behaviors
+
+            pool_preceeding_turns: true if we want to pool preceeding left and right turns into one category (only applies if pool_preceeding_behaviors is false)
+
+            pool_succeeding_turns: true if we want to pool succeeding left and right turns into one category
+
+            remove_st: True if events with transitions from and to the same behavior should be removed.
 
             f_ts_str: a string indicating the field of timestamp data in the datasets where we will find the fluorescene
             data we are to process when forming Delta F/F
@@ -110,21 +142,6 @@ def fit_init_models(ps: dict):
 
             enforce_contained_events: If true, only analyze behaviors with start and stop times contained within the
             dff window
-
-            pool_preceeding_behaviors: True if we want to pool preceeding behaviors
-
-            pool_preceeding_turns: true if we want to pool preceeding left and right turns into one category (only applies if pool_preceeding_behaviors is false)
-
-            pool_succeeding_turns: true if we want to pool succeeding left and right turns into one category
-
-            clean_event_def: The defintion we use for clean events.  Options are:
-
-                disjoint: "Clean" events are those which have *no* overlap with any other event
-
-                decision: A "clean" events can only intersect at most one other event that starts and ends before it
-
-            behaviors: List the types of behaviors we are interested in analyzing - this is for the behaviors we
-            transition into. If None, we don't filter events by behavior
 
             save_folder: Folder we save events into
 
@@ -181,7 +198,7 @@ def fit_init_models(ps: dict):
         m_ind = m_ind[0][0]
         volume_subjs[m_ind] = 'CW_17-11-03-L6-2'
 
-    # Produce final list of anntation subjects by intersecting the subjects we have annotations for with those we
+    # Produce final list of annotation subjects by intersecting the subjects we have annotations for with those we
     # have volumes before and removing any exlude subjects.
     analyze_subjs = set(volume_subjs).intersection(set(annot_subjs))
     analyze_subjs = analyze_subjs - set(ps['exclude_subjs'])
@@ -212,22 +229,18 @@ def fit_init_models(ps: dict):
 
     annotations = pd.concat(annotations, ignore_index=True)
 
+    # Apply the cut off time and quiet threshold
+    annotations = apply_quiet_and_cutoff_times(annots=annotations, quiet_th=ps['q_th'], co_th=ps['co_th'])
+
     # ==================================================================================================================
-    # Filter events by the behavior transitioned into if we are suppose to
-    if ps['behaviors'] is not None:
-        keep_inds = [i for i in annotations.index if annotations['beh'][i] in ps['behaviors']]
+    # Filter events by the behavior transitioned into or from if we are suppose to
+    if ps['behs'] is not None:
+        keep_inds = [i for i in annotations.index if annotations['beh'][i] in ps['behs']]
         annotations = annotations.iloc[keep_inds]
 
-    # ==================================================================================================================
-    # Now threshold transitions to determine when events were preceeded or succeeded by quiet
-    annotations.loc[(annotations['start'] - annotations['beh_before_end']) > ps['q_th'], 'beh_before'] = 'Q'
-    annotations.loc[(annotations['beh_after_start'] - annotations['end']) > ps['q_th'], 'beh_after'] = 'Q'
-    annotations.drop(['beh_before_start', 'beh_before_end', 'beh_after_start', 'beh_after_end'], axis=1, inplace=True)
-
-    # ==================================================================================================================
-    # Pool preceeding behaviors into one (G)rouped label if requested
-    if ps['pool_preceeding_behaviors']:
-        annotations['beh_before'] = 'G'
+    if ps['pre_behs'] is not None:
+        keep_inds = [i for i in annotations.index if annotations['beh'][i] in ps['pre_behs']]
+        annotations = annotations.iloc[keep_inds]
 
     # ==================================================================================================================
     # Pool preceeding turns if requested
@@ -240,6 +253,17 @@ def fit_init_models(ps: dict):
     if ps['pool_succeeding_turns']:
         turn_rows = (annotations['beh'] == 'TL') | (annotations['beh'] == 'TR')
         annotations.loc[turn_rows, 'beh'] = 'TC'
+
+    # ==================================================================================================================
+    # Remove self transitions if requested
+    if ps['remove_st']:
+        self_trans = annotations['beh_before'] == annotations['beh']
+        annotations = annotations.loc[self_trans]
+
+    # ==================================================================================================================
+    # Pool preceeding behaviors into one (G)rouped label if requested
+    if ps['pool_preceeding_behaviors']:
+        annotations['beh_before'] = 'G'
 
     # ==================================================================================================================
     # Now we read in the $\frac{\Delta F}{F}$ data for all subjects

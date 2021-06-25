@@ -76,6 +76,45 @@ BASIN_SEG_CODES = {1: 'T1 L+R',
                    12: 'A9 L+R'}
 
 
+def apply_quiet_and_cutoff_times(annots: pd.DataFrame, quiet_th: int, co_th: int):
+    """
+
+    A function to mark preceeding behaviors as either quiet, or of a known type, or unknown.  This determination
+    is done based on the following when determing what the preceeding behavior is for any event:
+
+        1) We look to see if the difference between the end of the preceding behavior and the start of the current
+        event is greater than or equal to quiet_th.  If so, we mark the preceding behavior as quiet.
+
+        2) We look to see if the difference between the end of the preceding behavior and the start of the current
+        event is less than or equal to co_th.  If so, we determine a real transition has occured and the preceeding
+        behavior is kept as is.
+
+        3) Any preceeding events which are not marked as quiet or marked as known transitions are marked as unknown (U)
+
+    Args:
+
+        annots: A pandas data frame, as produced by get_basic_clean_annotations_from_full
+
+        quiet_th: The quiet threshold to apply.
+
+        co_th: The cut off threshold to apply.
+
+    Returns:
+
+        annots_out: A copy of the annots data frame.  Preceeding behaviors will be marke as 'Q' for quiet,
+        'U' for known or the the behavior will be unchanged (for transitions faster than the cut off time).
+    """
+    annots = copy.deepcopy(annots)
+    delta = annots['start'] - annots['beh_before_end']
+    known_trans = delta <= co_th
+    before_quiet = delta >= quiet_th
+
+    annots.loc[~known_trans, 'beh_before'] = 'U'
+    annots.loc[before_quiet, 'beh_before'] = 'Q'
+
+    return annots
+
+
 def calc_dff(f: np.ndarray, b: np.ndarray, background: float, ep: float) -> np.ndarray:
     """ Function for calculating dff as:
 
@@ -694,7 +733,7 @@ def read_full_annotations(file: pathlib.Path) -> pd.DataFrame:
     formatted_annots = annots[['start', 'end']].copy()
     formatted_annots['beh'] = pd.Series(beh_col_dict)
 
-    # Adjust annotations so they are zero-indexed and respect standard slice notation (
+    # Adjust annotations so they are zero-indexed
     formatted_annots[['start', 'end']] = formatted_annots[['start', 'end']] - 1
 
     return formatted_annots
@@ -866,34 +905,30 @@ def count_unique_subjs_per_transition(table: pd.DataFrame, behs: Sequence[str] =
     return pd.DataFrame(n_subjs_per_trans, index=behs, columns=behs)
 
 
-def find_clean_events(annotations: pd.DataFrame, clean_def: str = 'disjont') -> np.ndarray:
+def find_clean_events(annotations: pd.DataFrame, clean_def: str = 'dj') -> np.ndarray:
     """ Returns clean events from full annotations.
-
-    Clean annotations are defined as those which:
-
-        1) Don't overlap any other events
 
     Args:
         annotations: The annotations to search for clean events in
 
         clean_def: The definition of a clean events.  Options are:
 
-            disjoint: A clean event must not intersect any other events
+            dj: disjoint - A clean event must not intersect any other events
 
-            decision: A clean event can only intersect at most one other event that starts and ends before it
+            po: partial overlap - A clean event can only intersect at most one other event that starts before it starts and
+            ends before at the same time it ends
 
     Returns:
         keep_events: A boolean array which can be used to index annotations to return only the clean events
     """
 
-    # Find events that don't overlap with any others
     ints = copy.deepcopy(annotations[['start', 'end']].to_numpy())
-    ints[:, 1] = ints[:, 1] + 1 # Account for inclusive end indexing in the original data
+    ints[:, 1] = ints[:, 1] + 1  # Account for inclusive end indexing in the original data
 
-    if clean_def == 'disjoint':
+    if clean_def == 'dj':
         disjoint_events = find_disjoint_intervals(ints)
-    elif clean_def == 'decision':
-        disjoint_events = find_usable_decision_events(ints)
+    elif clean_def == 'po':
+        disjoint_events = find_usable_partial_overlap_events(ints)
     else:
         raise(ValueError('The clean_def ' + clean_def + ' is not recognized.'))
 
@@ -903,11 +938,11 @@ def find_clean_events(annotations: pd.DataFrame, clean_def: str = 'disjont') -> 
 def find_before_and_after_events(events: pd.DataFrame, all_events: pd.DataFrame) -> pd.DataFrame:
     """ Finds events before and after a given set of events of interest.
 
-    A preceeding event is defined as the one the largest differene between it's end time and the start of
-    the event of interest, provided it does not end simultaneously with or after the event of interest
+    A preceeding event is defined as the one the largest value when the start time of the event of interest is subtracted
+    from its end time, provided it does not end simultaneously with or after the event of interest
 
-    A succeeding event is defined as the one with the largest negative difference between it's start time
-    and the end of the event of interst, provided it does not start simultaneously with or before the event of interst.
+    A succeeding event is defined as the one with the smallest value when the end time of the event of interest is
+    subtracted from the its start time, provided it does not start simultaneously with or before the event of interest.
 
     Note: If an event was not preceeded or suceeded by an event OR there was more than one preceeding or succeeding
     events equally close to the event of interest, than the before or after values returned for the event of
@@ -981,9 +1016,9 @@ def find_before_and_after_events(events: pd.DataFrame, all_events: pd.DataFrame)
     return before_after_events
 
 
-def find_usable_decision_events(ints: np.ndarray):
+def find_usable_partial_overlap_events(ints: np.ndarray):
     """
-    Finds events that are appropriate to use when looking for decision neurons.
+    Finds events that are appropriate to use when we allow partial overlap.
 
     Usable events are those which are:
 
@@ -991,7 +1026,7 @@ def find_usable_decision_events(ints: np.ndarray):
 
         OR
 
-        2) Overlap with only one other event, which starts before it.
+        2) Overlap with only one other event, which starts before it starts and ends before or at the same time it ends.
 
     The logic here is that a wave for one event may be ending when another is starting.
 
@@ -1015,13 +1050,13 @@ def find_usable_decision_events(ints: np.ndarray):
         stop_ind = query_int[1] - 1
         all_other_ints[:, 1] = all_other_ints[:, 1] - 1
 
-        # Find intervals where the query interval only overlap their start
+        # Find intervals where the query interval overlaps their start
         start_overlaps = np.logical_and(all_other_ints[:, 0] >= start_ind,
                                         all_other_ints[:, 0] <= stop_ind)
 
-        # Find intervals where the query interval only overlaps their end
+        # Find intervals where the query interval overlaps their end
         stop_overlaps = np.logical_and(all_other_ints[:, 1] >= start_ind,
-                                        all_other_ints[:, 1] <= stop_ind)
+                                       all_other_ints[:, 1] <= stop_ind)
 
         # Find intervals where the query interval contains the start and stop of the other intervals
         contained_overlaps = np.logical_and(all_other_ints[:, 0] >= start_ind,
@@ -1043,7 +1078,7 @@ def find_usable_decision_events(ints: np.ndarray):
     good_rows = np.zeros(n_events, dtype=np.bool)
     for e_i in range(n_events):
         cur_rows = np.delete(np.arange(n_events), e_i)
-        cur_overlapping_events = _find_overlapping_ints(ints[e_i,:], ints[cur_rows,:], cur_rows)
+        cur_overlapping_events = _find_overlapping_ints(ints[e_i, :], ints[cur_rows, :], cur_rows)
 
         if (len(cur_overlapping_events['contained_within_ints']) == 0 and
             len(cur_overlapping_events['contained_ints']) == 0 and
@@ -1054,7 +1089,7 @@ def find_usable_decision_events(ints: np.ndarray):
     return good_rows
 
 
-def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: str = 'disjoint') -> pd.DataFrame:
+def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: str = 'dj') -> pd.DataFrame:
     """ Gets basic clean annotations from a set of full annotation.
 
     This function will:
