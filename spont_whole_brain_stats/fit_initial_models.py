@@ -47,7 +47,7 @@ base_ps['dataset_folder'] = 'extracted'
 base_ps['dataset_base_folder'] = r'K:\\SV4'
 
 # The defintion we use for clean events
-base_ps['clean_event_def'] = 'dj'  # 'dj' or 'po'
+base_ps['clean_event_def'] = ['dj', 'po']  # 'dj' or 'po'
 
 # Specify the threshold we use (in number of stacks) to determine when a quiet transition has occurred
 base_ps['q_th'] = 55
@@ -59,7 +59,7 @@ base_ps['co_th'] = 3
 base_ps['behs'] = [['B', 'F', 'TL', 'TR', 'H']]
 
 # Specify the preceding behaviors for events we analyze
-base_ps['pre_behs'] = [['B', 'F', 'TL', 'TR', 'H', 'U']]
+base_ps['pre_behs'] = [['Q', 'B', 'F', 'TL', 'TR', 'H', 'U']]
 
 # True if we want to pool preceeding behaviors
 base_ps['pool_preceeding_behaviors'] = True
@@ -69,8 +69,9 @@ base_ps['pool_preceeding_behaviors'] = True
 base_ps['pool_preceeding_turns'] = True
 
 # True if we want to pool succeeding left and right turns into one category
-base_ps['pool_succeeding_turns'] = [True] #[False, True]
+base_ps['pool_succeeding_turns'] = [False, True]
 
+# True if we should remove events that transition from a behavior to that same behavior
 base_ps['remove_st'] = True
 
 # Data to calculate Delta F/F for in each dataset
@@ -94,14 +95,14 @@ base_ps['alpha'] = .05
 base_ps['window_type'] = 'start_locked'  # 'whole_event' or 'start_locked'
 
 # If we are using a window locked to event start or stop, we give the relative offset and window length here
-base_ps['window_offset'] = 0 #[0, 3, 6, 9, 12, 15, 18]
-base_ps['window_length'] = 3 #[3, 6]
+base_ps['window_offset'] = [-9, -6, -3, 0, 3, 6, 9, 12, 15, 18]
+base_ps['window_length'] = [3, 6]
 
 # Specify if we only consider events where the extracted dff window is entirely contained within the event
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\spont_window_sweep_v2\test1'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\spont_window_sweep_v2\ind_collections'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended

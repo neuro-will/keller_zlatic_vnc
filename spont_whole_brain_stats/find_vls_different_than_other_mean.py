@@ -19,7 +19,7 @@ from keller_zlatic_vnc.whole_brain.spontaneous import parallel_test_for_diff_tha
 base_ps = dict()
 
 # Provide a folder for which we should search for results to post process
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\spont_window_sweep_v2\test1'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\spont_window_sweep_v2\ind_collections'
 
 # ======================================================================================================================
 # Code starts here
