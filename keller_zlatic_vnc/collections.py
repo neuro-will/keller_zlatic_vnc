@@ -232,7 +232,7 @@ def merge_collections(ind_collections: Sequence[PathOrStr], tgt_folder: PathOrSt
     """
 
     ALWAYS_IGNORE_KEYS = ['description', 'creation_time', 'janelia_core', 'keller_zlatic_vnc',
-                          'suceeding_behaviors']
+                          'preceding_behaviors', 'suceeding_behaviors']
 
     if ignore_keys is not None:
         ignore_keys = ignore_keys + ALWAYS_IGNORE_KEYS
@@ -387,6 +387,8 @@ def merge_metadata(m: Sequence[CommentedMap], _key=None) -> Tuple[CommentedMap, 
 
 
 def _seq_to_str(sq):
+    if sq is None:
+        return 'none'
     if isinstance(sq, Sequence) and not isinstance(sq, str):
         s = ''
         for v in sq:

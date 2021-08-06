@@ -17,7 +17,7 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 
 # Specify folder results are saved in
 
-results_folder = r'A:\projects\keller_vnc\results\single_subject\spont_window_sweep_v2\ind_collections'
+results_folder = r'A:\projects\keller_vnc\results\single_subject\ind_trans_window_sweep\ind_collections'
 
 # Provide a string suffix specifying the results file
 rs_suffix = '*mean_cmp_stats.pkl'

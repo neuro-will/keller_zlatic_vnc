@@ -47,13 +47,13 @@ base_ps['dataset_folder'] = 'extracted'
 base_ps['dataset_base_folder'] = r'K:\\SV4'
 
 # The defintion we use for clean events
-base_ps['clean_event_def'] = ['dj', 'po']  # 'dj' or 'po'
+base_ps['clean_event_def'] = 'po'  # 'dj' or 'po'
 
 # Specify the threshold we use (in number of stacks) to determine when a quiet transition has occurred
 base_ps['q_th'] = 55
 
 # Specify the cut off threshold we use (in number of stacks) to determine when a real transition has occurred
-base_ps['co_th'] = 3
+base_ps['co_th'] = [3, 6]
 
 # Specify the set of behaviors transitioned into for events we analyze
 base_ps['behs'] = [['B', 'F', 'TL', 'TR', 'H']]
@@ -62,17 +62,17 @@ base_ps['behs'] = [['B', 'F', 'TL', 'TR', 'H']]
 base_ps['pre_behs'] = [['Q', 'B', 'F', 'TL', 'TR', 'H', 'U']]
 
 # True if we want to pool preceeding behaviors
-base_ps['pool_preceeding_behaviors'] = True
+base_ps['pool_preceeding_behaviors'] = False
 
 # True if we want to pool preceding left and right turns into one category (only applies if pool_preceeding_behaviors
 # is false)
-base_ps['pool_preceeding_turns'] = True
+base_ps['pool_preceeding_turns'] = False
 
 # True if we want to pool succeeding left and right turns into one category
-base_ps['pool_succeeding_turns'] = [False, True]
+base_ps['pool_succeeding_turns'] = False
 
 # True if we should remove events that transition from a behavior to that same behavior
-base_ps['remove_st'] = True
+base_ps['remove_st'] = False
 
 # Data to calculate Delta F/F for in each dataset
 base_ps['f_ts_str'] = 'f_1_5_5'
@@ -86,7 +86,7 @@ base_ps['ep'] = 20
 base_ps['min_n_subjs'] = 1
 
 # Min number of events we must observe a transition in for us to analyze it
-base_ps['min_n_events'] = 5
+base_ps['min_n_events'] = 3
 
 # Alpha value for thresholding p-values when calculating stats - this is not used in producing the final maps
 base_ps['alpha'] = .05
@@ -95,14 +95,14 @@ base_ps['alpha'] = .05
 base_ps['window_type'] = 'start_locked'  # 'whole_event' or 'start_locked'
 
 # If we are using a window locked to event start or stop, we give the relative offset and window length here
-base_ps['window_offset'] = [-9, -6, -3, 0, 3, 6, 9, 12, 15, 18]
-base_ps['window_length'] = [3, 6]
+base_ps['window_offset'] = [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3]
+base_ps['window_length'] = 1
 
 # Specify if we only consider events where the extracted dff window is entirely contained within the event
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\spont_window_sweep_v2\ind_collections'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\ind_trans_window_sweep\ind_collections'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended

@@ -30,7 +30,7 @@ import re
 from keller_zlatic_vnc.collections import form_collection
 
 # Folder holding results
-rs_folder = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject\spont_window_sweep_v2\ind_collections'
+rs_folder = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject\ind_trans_window_sweep\ind_collections'
 
 # Give path to a file holding parameters used to extract fluorescece
 f_extraction_params_file = r'K:\SV4\CW_17-08-23\L1-561nm-ROIMonitoring_20170823_145226.corrected\extracted\rois_1_5_5\extraction_params.pkl'
@@ -44,17 +44,14 @@ responsible = ['William Bishop <bishopw@hhmi.janelia.org>',
 
 # Provide a description of the collection.
 description = ('In this analysis we look at results for the single EM specimen, analyzing spontaneous behavior ' +
-               'transitions.  We sweep a window in time, to see how encoding changes relative to behavior onset.' +
-               'This is the second version of these maps, where changes to cut-off time, quiet thresholds, stricter ' +
-               ' filtering of events based on the behavior before and transitioned into and changes to how ' +
-               ' we deal with transitions to and from the same behavior have all been incorporated.'
+               'for specific transitions. '  +
                'The key scripts to run the statistical tests used to produce these maps are fit_init_models.py ' +
                ' and find_vls_different_than_other_mean.py. The script ' +
                'make_spont_whole_brain_movies_and_images.py was then used to render the actual maps.')
 
 # List hashes identify commits in git for the different pieces of code used to produce these results
-git_hashes = {'janelia_core': '0cc52fb406b985b274d222ee16b05ba20365715d',
-             'keller_zlatic_vnc': '2dc3d8bf3a2f609bb000cf6f20bc6916032321a6'}
+git_hashes = {'janelia_core': 'c7f1c61635c5f32a513b43d0c0e0810a61f69007',
+             'keller_zlatic_vnc': 'b5fdcd74c2f4a170d9323301f97234077eb2a317'}
 
 # List the parameters that should be included in the metadata file, with comments that should also be included
 f_extraction_yaml_fields = {'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}
@@ -64,17 +61,20 @@ baseline_calc_yaml_fields = {'window_length': 'Length of window used for baselin
                              'write_offset': "Offset between first point in window and the point the filtered output is assigned to.",
                              'p': 'The particular percentile used for percentile filtering.'}
 
-mdl_fitting_yaml_fields = {'q_th': 'The threshold in times points used for determining if a behavior is preceeded by quiet.',
+mdl_fitting_yaml_fields = {'co_th': 'The threshold in time points used for marking real transitions.',
+                           'q_th': 'The threshold in time points used for determining if a behavior is preceeded by quiet.',
                            'enforce_contained_events': 'True if only events with behaviors falling entirely within the window of analyzed neural activity should be included in the data used for model fitting.',
                            'pool_preceeding_behaviors': 'True if all preceeding behaviors should be pooled.',
                            'pool_preceeding_turns': 'True if left and right preceeding turns should be pooled.',
                            'pool_succeeding_turns': 'True if succeeding left and right turns should be pooled.',
                            'clean_event_def': 'The criteria used for determing which events are clean, with respect to how they overlap other events, for inclusion in the analysis.',
-                           'behaviors': 'Filter applied so that only behaviors in this set are included in the analysis.',
+                           'behs': 'Filter applied so that only events with behaviors transitioned into in this set are included in the analysis.',
+                           'pre_behs': 'Filter applied so that only events with preceeding behaviors in this set are included in the analysis.',
+                           'remove_st': 'True if we remove any events with transitions to and from the same behavior from the analysis',
                            'min_n_subjs': 'The min number of subjects we need to observe a transition for in order to include it in the model.',
                            'min_n_events': 'The min number of times we need to observe a transition (across all subejcts) to include it in the model.',
                            'window_type': 'The method for determining the alignment of the window of neural activity relative to behavior.',
-                           'window_offset': 'The offset in time points of the start of the window of neural activity relative to behaivor.',
+                           'window_offset': 'The offset in time points of the start of the window of neural activity relative to behavior.',
                            'window_length': 'The length of the window in time points of neural activity analyzed.'
                            }
 
