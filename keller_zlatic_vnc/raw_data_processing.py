@@ -11,6 +11,7 @@ import h5py
 import numpy as np
 import pyspark
 
+from janelia_core.cell_extraction.roi import extract_rois
 from janelia_core.cell_extraction.super_voxels import extract_super_voxels_in_brain
 from janelia_core.dataprocessing.baseline import percentile_filter_multi_d
 from janelia_core.dataprocessing.roi import ROI
@@ -43,20 +44,26 @@ def generate_rois_from_segments(seg_image: np.ndarray) -> List[ROI]:
     return rois
 
 
-def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib.Path, roi_extract_opts: dict,
+def video_to_roi_baselines(base_data_dir: pathlib.Path, save_dir: pathlib.Path, roi_extract_opts: dict,
                                   baseline_calc_opts: dict, extract_params: dict,
                                   img_file_ext: str = 'weightFused.TimeRegistration.templateSpace.klb',
                                   new_comp: bool = False, sc:pyspark.SparkContext = None,
                                   roi_vl_file_name: str = 'extracted_f.h5',
                                   roi_desc_file_name: str = 'roi_locs.pkl',
                                   baseline_file_name: str = 'baseline_f.h5',
-                                  extract_params_file_name: str = 'extraction_params.pkl'):
-    """ Pipeline to go from videos to supervoxel extraced F and baseline F for Keller/Zlatic vnc data.
+                                  extract_params_file_name: str = 'extraction_params.pkl',
+                                  rois: List[ROI] = None):
+    """ Pipeline to go from videos to extraced F and baseline F for ROIS in Keller/Zlatic vnc data.
 
     This function will:
 
-        1) Extract average (across space) intensity in supervoxel ROIs of a specified size
-        in a given brain mask
+        1) Extract average (across space) intensity in ROIS across space.  It can do this in one of two ways.
+
+            1) The default is to place supervoxels across space of a specified size in a given brain mask and
+            extract fluorescence and baselines values for each supervoxel.
+
+            2) Alternatively, the user can specify a set of rois.  These ROIs can each have a custom shape and
+            placement, and then fluorescence and baselines are only calculated for these ROISs.
 
         2) Calculate a baseline for each ROI
 
@@ -74,8 +81,11 @@ def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib
 
         save_dir: The directory that results should be saved in.
 
-        roi_extract_opts: A dictionary of options to pass to extract_super_voxels_in_brain.  At a minimum,
-        it should contain the key 'voxel_size_per_dim'.
+        roi_extract_opts: A dictionary of options to pass to either
+            1) extract_super_voxels_in_brain (if extracting super voxels).  At a minimum, it should contain the key
+            'voxel_size_per_dim'.
+
+            2) extract_rois (if extracting prespecified ROIs).  There are no required options in this case.
 
         baseline_calc_opts: A dictionary of options to pass to percentile_filter_multi_d to calculate baselines.
         Must include window_length, filter_start, write_offset, p, and n_processes.
@@ -138,9 +148,13 @@ def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib
 
         # Extract ROIs
         extract_t0 = time.time()
-        roi_vls, rois = extract_super_voxels_in_brain(images=imgs, sc=sc, **roi_extract_opts)
-        extract_t1 = time.time()
+        if rois is None:
+            # If no ROIS provided, we use supervoxels
+            roi_vls, rois = extract_super_voxels_in_brain(images=imgs, sc=sc, **roi_extract_opts)
+        else:
+            roi_vls = extract_rois(images=imgs, rois=rois, sc=sc, **roi_extract_opts)
 
+        extract_t1 = time.time()
         n_extracted_rois = len(rois)
         print('Extracted ' + str(n_extracted_rois) + ' ROIS in ' + str(extract_t1 - extract_t0) + ' seconds.')
 
@@ -182,7 +196,9 @@ def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib
     with open(param_save_file, 'wb') as f:
         pickle.dump(extract_params, f)
 
+
 # Helper functions
+
 
 def _form_roi(seg_image, seg_id):
     vls = np.argwhere(seg_image == seg_id)
