@@ -1,16 +1,46 @@
 """ Code to go from videos to extracted dff. """
 
 import os
+import multiprocessing as mp
+from typing import List
 import pathlib
 import pickle
 import time
 
 import h5py
+import numpy as np
 import pyspark
 
 from janelia_core.cell_extraction.super_voxels import extract_super_voxels_in_brain
 from janelia_core.dataprocessing.baseline import percentile_filter_multi_d
+from janelia_core.dataprocessing.roi import ROI
 from janelia_core.fileio.exp_reader import find_images
+
+
+def generate_rois_from_segments(seg_image: np.ndarray) -> List[ROI]:
+    """ Generates rois from segments.
+
+    Args:
+
+        seg_image: A 3-d volume with labeled segments.  0 indicates background. Integer values correspond to segments.
+
+    Returns:
+        rois: A list of roi objects represting all segments in the object.
+    """
+
+    # The id denoting background
+    BG_ID = 0
+
+    # Find unique segment ids, removing the background ID
+    seg_ids = np.unique(seg_image)
+    seg_ids = seg_ids[seg_ids != BG_ID]
+
+    # Generate rois
+    n_cpu = mp.cpu_count()
+    with mp.Pool(n_cpu) as pool:
+        rois = pool.starmap(_form_roi, [(seg_image, id) for id in seg_ids])
+
+    return rois
 
 
 def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib.Path, roi_extract_opts: dict,
@@ -151,6 +181,14 @@ def video_to_supervoxel_baselines(base_data_dir: pathlib.Path, save_dir: pathlib
 
     with open(param_save_file, 'wb') as f:
         pickle.dump(extract_params, f)
+
+# Helper functions
+
+def _form_roi(seg_image, seg_id):
+    vls = np.argwhere(seg_image == seg_id)
+    return ROI(voxel_inds=tuple(vls[:, c] for c in range(3)), weights=np.ones(vls.shape[0]))
+
+
 
 
 
