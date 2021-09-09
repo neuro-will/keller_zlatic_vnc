@@ -29,33 +29,35 @@ import re
 from keller_zlatic_vnc.collections import form_collection
 
 # Folder holding results
-rs_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps_v2'
+rs_folder = r'A:\projects\keller_vnc\results\single_subject\segmented_results\pain_map_test'
 
 # Give path to a file holding parameters used to extract fluorescece
-f_extraction_params_file = r'K:\SV4\CW_17-08-23\L1-561nm-ROIMonitoring_20170823_145226.corrected\extracted\rois_1_5_5\extraction_params.pkl'
+#f_extraction_params_file = r'K:\SV4\CW_17-08-23\L1-561nm-ROIMonitoring_20170823_145226.corrected\extracted\rois_1_5_5\extraction_params.pkl'
+f_extraction_params_file = r'K:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\rois_segments\extraction_params.pkl'
 
 # Give path to a file holding parameters used to extract baselines
-baseline_calc_params_file = r'K:\SV4\CW_17-08-23\L1-561nm-ROIMonitoring_20170823_145226.corrected\extracted\rois_1_5_5\long_baseline_extract_params.pkl'
+#baseline_calc_params_file = r'K:\SV4\CW_17-08-23\L1-561nm-ROIMonitoring_20170823_145226.corrected\extracted\rois_1_5_5\long_baseline_extract_params.pkl'
+baseline_calc_params_file = r'K:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\rois_segments\long_baseline_extract_params.pkl'
 
 # List those who can be contacted with questions about the collection
 responsible = ['William Bishop <bishopw@hhmi.janelia.org>',
                'Andrew Champion <andrew.champion@gmail.com>']
 
 # Provide a description of the collection.
-description = ('This is the second iteration of looking at the single EM specimen response to pain.' +
-               ' Here we still sweep a window in time, to see how encoding changes relative to stimulus onset' +
-               ' and offset, while varying the window length.  But now in addition, we also analyze' +
-               ' the response to long and short stimulus events separately when using windows aligned to stim offset.' +
+description = ('This is the test for looking at the single EM specimen response to pain with segment ROIWs.' +
+               'The segmentation for these ROIs is very rough should these should be understood as prototype results.'
+               ' Here we just look at maps for one set of settings.' +
                ' The key script to run the statistical tests used to' +
                ' produce these maps is calc_single_subject_pain_stats.py and make_single_subj_pain_maps.py was' +
                ' used to generate the actual maps.')
 
 # List hashes identify commits in git for the different pieces of code used to produce these results
-git_hashes = {'janelia_core': '0cc52fb406b985b274d222ee16b05ba20365715d',
-              'keller_zlatic_vnc': 'c0f9d4f613d9a3bbf0a0e93108ccdd45254601c0'}
+git_hashes = {'janelia_core': '76c4b361fb1aa482365de8cca6748a2ae07c3f41',
+              'keller_zlatic_vnc': 'ed03d8dd731fb587021d28c490a7f65f7a93f6b9'}
 
 # List the parameters that should be included in the metadata file, with comments that should also be included
-f_extraction_yaml_fields = {'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}
+#f_extraction_yaml_fields = {'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}
+f_extraction_yaml_fields = {} # There are no fields if we are working with segment ROIS
 
 baseline_calc_yaml_fields = {'window_length': 'Length of window used for baseline calculation.',
                              'filter_start': 'Initial offset, relative to first data point, of window used for baseline calculations.',

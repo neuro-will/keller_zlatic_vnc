@@ -9,6 +9,7 @@ This script assumes:
 """
 
 import glob
+import os
 from pathlib import Path
 import pickle
 import numpy as np
@@ -42,10 +43,16 @@ ex_dataset_file = r'K:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.correct
 # Find results to generate images and maps for
 results_files = glob.glob(str(Path(results_folder) / rs_suffix))
 
+# Filter our results we already have images for
+results_files = [f for f in results_files if not os.path.exists(Path(f).parent / (Path(f).stem + '_images'))]
+n_results_files = len(results_files)
+print('Generating images and videos for ' + str(n_results_files) + ' results.')
+
 for f in results_files:
 
     # Determine where we will save the results
     save_folder_path = Path(f).parent / (Path(f).stem + '_images')
+
 
     # Load the results
     with open(f, 'rb') as f:

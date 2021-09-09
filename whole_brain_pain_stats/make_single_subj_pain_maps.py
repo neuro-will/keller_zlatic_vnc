@@ -14,14 +14,14 @@ from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_
 
 # Specify folder results are saved in
 
-results_folder = r'A:\projects\keller_vnc\results\single_subject_pain_maps_v2'
+results_folder = r'A:\projects\keller_vnc\results\single_subject\segmented_results\pain_map_test'
 
 # Provide a string for specifying the results file
 rs_reg_str = 'pain*.pkl'
 
 # Name of the roi group the results were generated for - currently, we can only generate results in batch if
 # they are all for the same rois
-roi_group = 'rois_1_5_5'
+roi_group = 'rois_segments'
 
 ex_dataset_file = r'K:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\dataset.pkl'
 

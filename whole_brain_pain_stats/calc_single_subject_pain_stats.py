@@ -33,8 +33,8 @@ base_ps['dataset_folder'] = 'extracted'
 base_ps['dataset_base_folder'] = r'K:\\SV4'
 
 # Data to calculate Delta F/F for in each dataset
-base_ps['f_ts_str'] = 'f_1_5_5'
-base_ps['bl_ts_str'] = 'bl_1_5_5_long'
+base_ps['f_ts_str'] = 'f_segments'
+base_ps['bl_ts_str'] = 'bl_segments_long'
 
 # Parameters for calculating dff
 base_ps['background'] = 100
@@ -53,13 +53,13 @@ base_ps['after_aligned'] = ['start']
 
 # Offset from the start of the window for dff after the event and the last stimulus time point.  An offset of 0,
 # means the first time point in the window will be the last time point the stimulus was delevered
-base_ps['after_offset'] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+base_ps['after_offset'] = [0] #, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
 # Length of window we pull dff in from after the stimulus
-base_ps['n_after_tm_pts'] = [1, 3]
+base_ps['n_after_tm_pts'] = [1] #, 3]
 
 # Folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject_pain_maps_v2'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\segmented_results\pain_map_test'
 
 # String to save with file names
 base_ps['save_str'] = 'pain'
