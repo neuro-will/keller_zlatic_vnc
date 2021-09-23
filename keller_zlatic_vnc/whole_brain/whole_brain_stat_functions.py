@@ -246,7 +246,7 @@ def whole_brain_single_ref_testing(data_file: Path, test_type: str, cut_off_time
     Args:
 
         data_file: The file with the extracted dff for each voxel as well as event information, as produced
-        by the folder dff_extraction.ipynb
+        by the notebook dff_extraction.ipynb
 
         test_type: The type of test to run.  Should be one of the following strings:
 

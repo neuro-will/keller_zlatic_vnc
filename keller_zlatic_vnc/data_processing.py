@@ -1,6 +1,7 @@
 """ Contains tools for reading in and converting data. """
 
 import copy
+import glob
 import os.path
 from typing import Sequence, Tuple, Union
 import pathlib
@@ -9,6 +10,7 @@ import re
 
 import numpy as np
 import pandas as pd
+import scipy.io
 
 from janelia_core.dataprocessing.dataset import ROIDataset
 from janelia_core.dataprocessing.roi import ROI
@@ -202,6 +204,21 @@ def generate_standard_id_for_full_annots(annot_file: str):
     # Note the sn key will contain any extra information by the way we broke up the reg expression
     return 'CW_' + match['yr'] + '-' + match['mn'] + '-' + match['dy'] + '-L' + match['sn']
 
+
+def generate_standard_id_for_trace_subject(subj: str):
+    """ Generates a specimen ID in the format of the original excel files from an id of a single cell trace folder.
+
+    See documentation for generate_standard_id_for_volume for the format of a standard id.
+    """
+    MATCH_STR = '20(\d{2})-(\d{2})-(\d{2})-(L\d{1})(-.{1}){0,1}-CL.traces'
+    match = re.match(MATCH_STR, subj)
+    match = list(match.groups())
+
+    subj_id = 'CW_' + match[0] + '-' + match[1] + '-' + match[2] + '-' + match[3]
+    if match[4] is not None:
+        subj_id += match[4]
+
+    return subj_id
 
 def generate_standard_id_from_matlab_id(id: str) -> str:
     """ Generates a specimen ID in the format of the original excel files from an id in a matlab file.
@@ -797,6 +814,71 @@ def read_raw_transitions_from_excel(file: Union[pathlib.Path, str], sheet_name: 
     return df
 
 
+def read_trace_data(subjects: list, a00c_trace_folder, handle_trace_folder, basin_trace_folder):
+    """ Reads in single cell data to a single DataFrame.
+
+    Args:
+
+        subjects: A list of subject ids (in standard format) that we should read data in for.
+
+        a00c_trace_folder: The base folder holding the trace data for a00c cells.  Under this folder there
+        should be subfolders for each subject.
+
+        handle_trace_folder: Similar to a00c_trace_folder but for handle neurons.
+
+        basin_trace_folder: Similar to a00c_trace_folder but for basin neurons.
+
+    Returns:
+        data: A data frame with the columns 'subject_id', 'cell_type', 'cell_id' and 'f'.  Column names
+        are self explanatory, with the exception of 'f' which is the raw fluorescence traces of each neuron.
+
+    """
+    MATLAB_FILES = 'traces*.mat'  # Regular expression for finding matlab files
+    CELL_TYPES = ['a00c', 'handle', 'basin']
+
+    def _get_subj_data(subj_folder, subj, cell_type):
+        matlab_file = glob.glob(str(pathlib.Path(subj_folder) / MATLAB_FILES))[0]
+        matlab_data = scipy.io.loadmat(matlab_file, squeeze_me=True)
+
+        annotations = matlab_data['annotations']
+        traces = matlab_data['traces']
+
+        s_table = pd.DataFrame(columns=['subject_id', 'cell_type', 'cell_id', 'f'])
+
+        for cell_i in range(traces.shape[1]):
+            cur_row = {'subject_id': subj,
+                       'cell_type': cell_type,
+                       'cell_id': annotations[cell_i][0],
+                       'f': traces[:, cell_i]}
+            s_table = s_table.append(cur_row, ignore_index=True)
+        return s_table
+
+    n_subjects = len(subjects)
+
+    # First thing we determine the subjects we have traces for for each cell type
+    cell_type_base_folders = [a00c_trace_folder, handle_trace_folder, basin_trace_folder]
+    cell_type_subjects = [None] * 3
+    cell_type_folders = [None] * 3
+    for type_i, type_folder in enumerate(cell_type_base_folders):
+        cell_type_folders[type_i] = glob.glob(str(pathlib.Path(type_folder) / '*.traces'))
+        cell_folder_names = [pathlib.Path(folder).name for folder in cell_type_folders[type_i]]
+        cell_type_subjects[type_i] = [generate_standard_id_for_trace_subject(id) for id in cell_folder_names]
+
+    full_data_frame = pd.DataFrame()
+    for s_i, subj in enumerate(subjects):
+        for cell_type, type_subjects, type_folders in zip(CELL_TYPES, cell_type_subjects, cell_type_folders):
+            subj_ind = np.argwhere(np.asarray(type_subjects) == subj)
+            if len(subj_ind) == 0:
+                print('No traces found for ' + cell_type + ' cells for subject ' + subj + '.')
+            else:
+                subj_ind = subj_ind[0][0]
+                full_data_frame = full_data_frame.append(_get_subj_data(type_folders[subj_ind], subj, cell_type),
+                                                         ignore_index=True)
+        print('Done reading in data for subject ' + str(s_i + 1) + ' of ' + str(n_subjects) + '.')
+
+    return full_data_frame
+
+
 def recode_beh(table: pd.DataFrame, col):
     """ Recodes the behavioral labels in a Pandas Dataframe for consistency.
 
@@ -838,6 +920,89 @@ def recode_beh(table: pd.DataFrame, col):
 
     return table_copy
     pass
+
+
+def single_cell_extract_dff_with_anotations(activity_tbl: pd.DataFrame, event_tbl: pd.DataFrame,
+                                            align_col: str, ref_offset: int, window_l: int,
+                                            window_type: str = 'start_aligned', end_align_col: str = None,
+                                            end_ref_offset: int = 0) -> pd.DataFrame:
+    """ Extracts DFF for single cells for a given set of events and puts results in a table with annotations.
+
+    If there are no events for a cell, that cell will be omitted in the produced table.
+
+    DFF will be extracted as the mean DFF value in windows for each event. By default, these windows are of a fixed
+    length and located a certain offset from a reference index for each event. Alternatively, the user can specify
+    events to align both the start and end of the window to.
+
+    Args:
+
+        activity_tbl: Table with DFF traces for each cell.  As produced by the function read_trace_data.
+
+        event_tbl: Table with marked events for each cell.  Should have the columns 'event_id', 'beh_before',
+        'beh_after', 'beh' and at least one column with a label as given by align_col (see below) indicating
+        the starting index for each event to align windows to for pullint out DFF
+
+        align_col: The name of the column in event_tbl with the indices into the DFF traces in activity_tbl to which
+        the start of windows for calculating DFF in should be aligned to.
+
+        ref_offset: The offset to add to the indices in align_col when positioning the start of the window for
+        calculating DFF.
+
+        window_l: The length of the window to calculate mean DFF in. This is only used if window_type (see below) is
+        'start_aligned'
+
+        window_type: The type of window to use.  If 'start_aligned' windows of fixed length aligned to the start of a
+        certain event are used.  If 'start_end_aligned' windows with the start and end aligned to seperate events are
+        used.
+
+        end_align_col: If window_type is 'start_end_aligned' this is the event to align the end of the window to.  If
+        winow_type is 'start_aligned' this is ignored.
+
+        end_ref_offset: If window_type is 'start_end_aligned' this is the offset to add to the indices in end_align_col
+        when positioning the end of the window for calculating DFF.
+
+    Returns:
+
+        full_tbl: A table with the extracted DFF for each cell and event.  Will have the columns: 'subject_id',
+        'cell_id', 'cell_type', 'event_id', 'beh_before', 'beh_after', 'beh' and 'dff'.
+
+    Raises:
+
+        ValueError: If window_type is not start_aligned or start_end_aligned
+
+    """
+
+    if not (window_type == 'start_aligned' or window_type == 'start_end_aligned'):
+        raise(ValueError('window_type must be either start_aligned or start_end_aligned'))
+
+    full_tbl = pd.DataFrame(columns=['subject_id', 'cell_id', 'cell_type', 'event_id', 'beh_before', 'beh_after',
+                                     'beh', 'dff'])
+
+    # Iterate through cells
+    for _, cell in activity_tbl.iterrows():
+        # Find all events for this cell
+        cell_events = event_tbl[event_tbl['subject_id'] == cell['subject_id']]
+        for _, event in cell_events.iterrows():
+            # Calculate DFF in the requested window
+            start_ind = event[align_col] + ref_offset
+            if window_type == 'start_aligned':
+                stop_ind = start_ind + window_l
+            else:
+                stop_ind = event[end_align_col] + end_ref_offset
+            dff = np.mean(cell['dff'][start_ind:stop_ind])
+
+            # Add dff with annotations to the full table
+            row_dict = {'subject_id': cell['subject_id'],
+                        'cell_type': cell['cell_type'],
+                        'cell_id': cell['cell_id'],
+                        'event_id': event['event_id'],
+                        'beh_before': event['beh_before'],
+                        'beh_after': event['beh_after'],
+                        'beh': event['beh'],
+                        'dff': dff}
+            full_tbl = full_tbl.append(row_dict, ignore_index=True)
+
+    return full_tbl
 
 
 def count_transitions(table: pd.DataFrame, behs: Sequence[str] = None,

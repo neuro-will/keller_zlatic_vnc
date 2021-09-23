@@ -32,12 +32,12 @@ ps = dict()
 
 # ======================================================================================================================
 # Here we specify where the pdf should be saved and its name in a single path
-pdf_save_path = '/Users/bishopw/Desktop/results/state_dependence_other_ref_by_segment.pdf'
+pdf_save_path = '/Volumes/bishoplab/projects/keller_vnc/results/single_cell/old_results/decision_dep_other_ref.pdf'
 
 
 # ======================================================================================================================
 # Here we specify a path to a folder we can use for saving temporary files (images)
-temp_folder = '/Users/bishopw/Desktop/other_dep_temp'
+temp_folder = '/Users/bishopw/Desktop/temp'
 
 # ======================================================================================================================
 # Here we specify the location of the data
@@ -63,7 +63,7 @@ handle_a9_act_data_file = 'Handle_activity_A9.mat'
 #   before_reporting - tests if dff before manipulation is sensitive to behavior before
 #   after_reporting - tests if dff after manipulation is sensitive to behavior after
 #
-test_type = 'state_dependence'
+test_type = 'decision_dependence'
 
 # ======================================================================================================================
 # Here, we specify the different ways we want to filter the data when fitting models.  We will produce results for all
@@ -71,13 +71,13 @@ test_type = 'state_dependence'
 
 # Cell types are tuples of form (cell type, list of cell ids).  In place of a list of cell ids, the string 'all'
 # indicates we are using all cell ids
-#cell_types = [('a00c', 'all'),
-#              ('handle', 'all'),
-#              ('basin', 'all'),
-#              ('basin', [7]),
-#              ('basin', [12])]
+cell_types = [('a00c', 'all'),
+              ('handle', 'all'),
+              ('basin', 'all')]#,
+              #('basin', [7]),
+              #('basin', [12])]
 
-if True:
+if False:
     cell_types = [('a00c', [1, 2]),
               ('a00c', [3, 4]),
               ('a00c', [5, 6]),
@@ -107,7 +107,7 @@ if True:
               ('basin', [12])]
 
 manip_types = ['A4', 'A9', 'A4+A9']
-cut_off_times = [3.231, 17.4523, 111.6582]
+cut_off_times = [3.231] #, 17.4523, 111.6582]
 
 
 # Min number of subjects which must display a test behavior to include it in testing
