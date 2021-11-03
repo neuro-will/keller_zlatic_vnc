@@ -922,6 +922,70 @@ def recode_beh(table: pd.DataFrame, col):
     pass
 
 
+def single_cell_extract_dff_trace(activity_tbl: pd.DataFrame, event_tbl: pd.DataFrame,
+                                  align_col: str, ref_offset: int, window_l: int) -> pd.DataFrame:
+    """ Extracts DFF traces for single cells around a given set of events and puts results in a table.
+
+    If there are no events for a cell, that cell will be omitted in the produced table.
+
+    Args:
+
+        activity_tbl: Table with DFF traces for each cell.  As produced by the function read_trace_data.
+
+        event_tbl: Table with marked events for each cell.  Should have the columns 'event_id', 'beh_before',
+        'beh_after', 'beh' and at least one column with a label as given by align_col (see below) indicating
+        the starting index for each event to align windows to for pulling out DFF
+
+        align_col: The name of the column in event_tbl with the indices into the DFF traces in activity_tbl to which
+        the start of windows for calculating DFF in should be aligned to.
+
+        ref_offset: The offset to add to the indices in align_col when positioning the start of the window for
+        calculating DFF.
+
+        window_l: The length of the window to calculate mean DFF in. This is only used if window_type (see below) is
+        'start_aligned'
+
+        DFF is calculated in windows of a fixed length for each event. These windows start a fixed offset from
+        a given event, specified by the align_col above.
+
+    Returns:
+
+        full_tbl: A table with the extracted DFF for each cell and event.  Will have the columns: 'subject_id',
+        'cell_id', 'cell_type', 'event_id', 'beh_before', 'beh_after', 'beh' and 'dff'.
+
+    Raises:
+
+        ValueError: If window_type is not start_aligned or start_end_aligned
+
+    """
+
+    full_tbl = pd.DataFrame(columns=['subject_id', 'cell_id', 'cell_type', 'event_id', 'beh_before', 'beh_after',
+                                     'beh', 'dff'])
+
+    # Iterate through cells
+    for _, cell in activity_tbl.iterrows():
+        # Find all events for this cell
+        cell_events = event_tbl[event_tbl['subject_id'] == cell['subject_id']]
+        for _, event in cell_events.iterrows():
+            # Pull out DFF in the requested window
+            start_ind = event[align_col] + ref_offset
+            stop_ind = start_ind + window_l
+            dff = cell['dff'][start_ind:stop_ind]
+
+            # Add dff with annotations to the full table
+            row_dict = {'subject_id': cell['subject_id'],
+                        'cell_type': cell['cell_type'],
+                        'cell_id': cell['cell_id'],
+                        'event_id': event['event_id'],
+                        'beh_before': event['beh_before'],
+                        'beh_after': event['beh_after'],
+                        'beh': event['beh'],
+                        'dff': dff}
+            full_tbl = full_tbl.append(row_dict, ignore_index=True)
+
+    return full_tbl
+
+
 def single_cell_extract_dff_with_anotations(activity_tbl: pd.DataFrame, event_tbl: pd.DataFrame,
                                             align_col: str, ref_offset: int, window_l: int,
                                             window_type: str = 'start_aligned', end_align_col: str = None,
