@@ -78,11 +78,12 @@ BASIN_SEG_CODES = {1: 'T1 L+R',
                    12: 'A9 L+R'}
 
 
-def apply_quiet_and_cutoff_times(annots: pd.DataFrame, quiet_th: int, co_th: int):
+def apply_quiet_and_cutoff_times(annots: pd.DataFrame, quiet_th: int, co_th: int, q_length: int):
     """
+    Marks preceding and succeeding events as unknown, quiet or of a particular behavior.
 
-    A function to mark preceeding behaviors as either quiet, or of a known type, or unknown.  This determination
-    is done based on the following when determing what the preceeding behavior is for any event:
+    A function to mark preceding or succeeding behaviors as either quiet, or of a known type, or unknown. This
+    determination is done based on the following when determining what the preceding behavior is for any event:
 
         1) We look to see if the difference between the end of the preceding behavior and the start of the current
         event is greater than or equal to quiet_th.  If so, we mark the preceding behavior as quiet.
@@ -93,6 +94,14 @@ def apply_quiet_and_cutoff_times(annots: pd.DataFrame, quiet_th: int, co_th: int
 
         3) Any preceeding events which are not marked as quiet or marked as known transitions are marked as unknown (U)
 
+    If a preceeding event is marked as a quiet, we also update the time annotations for that event. This is done
+    by assinging the start time to be in the middle between the end of the original preceeding event and the start
+    of the current event.  Once assigning the start time, the end time is simply chosen so that the new quiet event
+    is q_length number of frames long.
+
+    The same is done when determining what a succeeding behavior is, with the succeeding event taking the pace of the
+    current event and the current event taking the place of the preceeding event above.
+
     Args:
 
         annots: A pandas data frame, as produced by get_basic_clean_annotations_from_full
@@ -101,18 +110,48 @@ def apply_quiet_and_cutoff_times(annots: pd.DataFrame, quiet_th: int, co_th: int
 
         co_th: The cut off threshold to apply.
 
+        q_length: The length of window to use when marking a new location of quiet events.
+
     Returns:
 
         annots_out: A copy of the annots data frame.  Preceeding behaviors will be marke as 'Q' for quiet,
         'U' for known or the the behavior will be unchanged (for transitions faster than the cut off time).
     """
-    annots = copy.deepcopy(annots)
-    delta = annots['start'] - annots['beh_before_end']
-    known_trans = delta <= co_th
-    before_quiet = delta >= quiet_th
 
-    annots.loc[~known_trans, 'beh_before'] = 'U'
-    annots.loc[before_quiet, 'beh_before'] = 'Q'
+    annots = copy.deepcopy(annots)
+
+    def __apply(cur_annots, type):
+
+        if type == 'preceding_behavior':
+            pre_event_str = 'beh_before_end'
+            succ_event_str = 'start'
+            update_beh_str = 'beh_before'
+            update_beh_start_str = 'beh_before_start'
+            update_beh_end_str = 'beh_before_end'
+        else:
+            pre_event_str = 'start'
+            succ_event_str = 'beh_after_start'
+            update_beh_str = 'beh_after'
+            update_beh_start_str = 'beh_after_start'
+            update_beh_end_str = 'beh_after_end'
+
+        delta = cur_annots[succ_event_str] - cur_annots[pre_event_str]
+        known_trans = delta <= co_th
+        known_quiet = delta >= quiet_th
+        cur_annots.loc[~known_trans, update_beh_str] = 'U'
+        cur_annots.loc[known_quiet, update_beh_str] = 'Q'
+
+        # Debug
+
+        new_queit_start_inds = np.ceil(delta[known_quiet]/2) + cur_annots.loc[known_quiet, pre_event_str]
+        new_queit_end_inds = new_queit_start_inds + q_length
+        cur_annots.loc[known_quiet, update_beh_start_str] = new_queit_start_inds
+        cur_annots.loc[known_quiet, update_beh_end_str] = new_queit_end_inds - 1 # -1 because of inclusive indexing
+
+        return cur_annots
+
+    annots = __apply(annots, 'preceding_behavior')
+    annots = __apply(annots, 'succeeding_behavior')
 
     return annots
 
@@ -1338,7 +1377,7 @@ def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: 
 
         full_annots: The full annotations to produce clean annotations from
 
-        clean_def: The definition to use when searching for clean events
+        clean_def: The definition to use when searching for clean events.  See function find_clean_events
 
     Returns:
 
