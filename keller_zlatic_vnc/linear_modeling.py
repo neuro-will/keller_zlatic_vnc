@@ -122,6 +122,50 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
     return [encoding, var_strs]
 
 
+def spont_beh_one_hot_encoding(tbl: pd.DataFrame, prev_str: str = None, suc_str: str = None, prev_ref: str = 'Q'):
+    """ Produces one-hot encoding of previous behaviors and behaviors transitioned into.
+
+    The previous behaviors will be referenced to a user specified behavior.
+
+    Args:
+        tbl: The table of events to encode.
+
+        prev_str: The name of the column marking previous behaviors.
+
+        suc_str: The name of the column marking behaviors transitioned into.
+
+        prev_ref: The behavior to reference previous behaviors to.
+
+    Returns:
+
+        table: A numpy array of size n_events by n_variables, with a one hot encoding of previous behaviors and
+        behaviors transitioned into.
+
+        vars: A list of variable names, indicating which each column in table represents.
+    """
+
+    # Get list of before and after behaviors we will mark, taking into account the reference
+    before_behs = np.asarray(list(set(list(tbl[prev_str].unique())) - set([prev_ref])))
+    after_behs =  np.asarray(tbl[suc_str].unique())
+
+    all_vars = ['before_' + b for b in before_behs] + ['after_' + b for b in after_behs]
+    n_before_behs = len(before_behs)
+    n_vars = len(all_vars)
+
+    n_events = tbl.shape[0]
+    one_hot = np.zeros([n_events, n_vars])
+    for ev_i in range(n_events):
+        before_beh_i = tbl[prev_str].iloc[ev_i]
+        after_beh_i = tbl[suc_str].iloc[ev_i]
+        before_match = np.argwhere(before_behs == before_beh_i)
+        if len(before_match) > 0:
+            one_hot[ev_i, before_match[0][0]] = 1
+        after_match = np.argwhere(after_behs == after_beh_i)
+        one_hot[ev_i, n_before_behs + after_match[0][0]] = 1
+
+    return one_hot, all_vars
+
+
 def reference_one_hot_to_beh(one_hot_data: np.ndarray, one_hot_vars: Sequence[str], beh: str,
                              remove_interaction_term: bool = True):
     """ Given a one hot encoding of behavioral variables, returns a one-hot encoding referenced to a given behavior.

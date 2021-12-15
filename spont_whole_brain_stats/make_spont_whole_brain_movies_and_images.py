@@ -17,19 +17,29 @@ import numpy as np
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_brain_videos_and_max_projs
 
 # Specify folder results are saved in
+results_folder = r'A:\projects\keller_vnc\results\single_subject\testing'
 
-results_folder = r'A:\projects\keller_vnc\results\single_subject\ind_trans_window_sweep\ind_collections'
+# Switch for setting additional parameters below based on if we are making images for the initial stats or after
+# comparing each coefficent to the mean of the others in its group
+stat_types = 'mean_cmp' # 'initial' or 'mean_cmp'
+
 
 # Provide a string suffix specifying the results file
-rs_suffix = '*mean_cmp_stats.pkl'
+if stat_types == 'initial':
+    rs_suffix = '*.pkl'
+else:
+    rs_suffix = '*_mean_cmp_stats.pkl'
 
 # Specify location of overlay files - these are for max projections
 overlay_files = [r'A:\projects\keller_vnc\data\overlays\horz_mean.png',
                  r'A:\projects\keller_vnc\data\overlays\cor_mean.png',
                  r'A:\projects\keller_vnc\data\overlays\sag_mean.png']
 
-# The string p-values are stored under
-p_vl_str = 'eq_mean_p' # 'non_zero_p' or 'non_max_p' or 'eq_mean_p'
+# The string p-values are stored under: 'non_zero_p' or 'eq_mean_p'
+if stat_types == 'initial':
+    p_vl_str = 'non_zero_p_corrected'
+else:
+    p_vl_str = 'eq_mean_p_corrected'
 
 # Lower percentage of p-values that brightness saturates at - should be between 0 and 100
 min_p_vl_perc = .0001
@@ -42,6 +52,9 @@ ex_dataset_file = r'K:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.correct
 
 # Find results to generate images and maps for
 results_files = glob.glob(str(Path(results_folder) / rs_suffix))
+
+# Filter our place holder files
+results_files = [f for f in results_files if f[0] != '.']
 
 # Filter our results we already have images for
 results_files = [f for f in results_files if not os.path.exists(Path(f).parent / (Path(f).stem + '_images'))]
@@ -59,13 +72,11 @@ for f in results_files:
         rs = pickle.load(f)
 
     # Put the results in the format expected for the plotting function
-    beh_trans = [b[0] + '_' + b[1] for b in rs['beh_trans']]
-
     n_rois = len(rs['full_stats'])
     p_vls = np.stack([s[p_vl_str] for s in rs['full_stats']])
     beta = np.stack([s['beta'] for s in rs['full_stats']])
 
-    beh_stats = {b: {'p_values': p_vls[:, b_i], 'beta': beta[:, b_i]} for b_i, b in enumerate(beh_trans)}
+    beh_stats = {b: {'p_values': p_vls[:, b_i], 'beta': beta[:, b_i]} for b_i, b in enumerate(rs['var_names'])}
     plot_rs = {'beh_stats': beh_stats}
 
     # Generate images and movies

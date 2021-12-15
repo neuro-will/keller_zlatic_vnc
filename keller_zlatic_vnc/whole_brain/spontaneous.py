@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 
 from janelia_core.dataprocessing.dataset import ROIDataset
+from janelia_core.stats.multiple_comparisons import apply_by
+from janelia_core.stats.multiple_comparisons import apply_bonferroni
 from janelia_core.stats.regression import linear_regression_ols_estimator
 from janelia_core.stats.regression import grouped_linear_regression_acm_stats
 from janelia_core.stats.regression import grouped_linear_regression_ols_estimator
@@ -24,7 +26,44 @@ from keller_zlatic_vnc.data_processing import generate_standard_id_for_full_anno
 from keller_zlatic_vnc.data_processing import generate_standard_id_for_volume
 from keller_zlatic_vnc.data_processing import get_basic_clean_annotations_from_full
 from keller_zlatic_vnc.data_processing import read_full_annotations
+from keller_zlatic_vnc.linear_modeling import spont_beh_one_hot_encoding
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import test_for_diff_than_mean_vls
+
+
+def apply_multiple_comparisons_corrections(p_vls: np.ndarray, computed_p_vls: np.ndarray):
+    """ Applies multiple comparisons to whole-brain statistics.
+
+    Multiple comparison correction is applied independently across maps for each behavior.
+
+    Args:
+        p_vls: A matrix of p values to correct.  Columns are behaviors; rows are rois.
+
+        computed_p_vls: A boolean matrix indicating which entries in p_vls we should run multiple comparisons over.
+        There reason for this is that there are some behaviors and rois we may not actually fit models to.  In that
+        case, we should not include those when doing multiple comparisons.
+
+    Returns:
+
+        corrected_p_vls_by: Benjamini-Yekutieli corrected p values.  If we left a p-value out of multiple comparisons
+        correction (because it's value in computed_p_vls was False), then it's entry here will be nan.
+
+        corrected_p_vls_bon: Bonferroni corrected p values.  Same format as corrected_p_vls_by.
+
+    """
+    corrected_p_vls_by = np.zeros(p_vls.shape)
+    corrected_p_vls_by[:] = np.nan
+    corrected_p_vls_bon = np.zeros(p_vls.shape)
+    corrected_p_vls_bon[:] = np.nan
+    for c_i in range(p_vls.shape[1]):
+        cur_col_vls = p_vls[computed_p_vls[:, c_i], c_i]
+        _, cur_col_corrected_p_vls_by = apply_by(p_vls=cur_col_vls,
+                                                 alpha=.05)  # alpha is not used for the second output
+        corrected_p_vls_by[computed_p_vls[:, c_i], c_i] = cur_col_corrected_p_vls_by
+
+        _, cur_col_corrected_p_vls_bon = apply_bonferroni(p_vls=cur_col_vls, alpha=.05) # Alpha not used here either
+        corrected_p_vls_bon[computed_p_vls[:, c_i], c_i] = cur_col_corrected_p_vls_bon
+
+    return corrected_p_vls_by, corrected_p_vls_bon
 
 
 def fit_init_models(ps: dict):
@@ -162,7 +201,7 @@ def fit_init_models(ps: dict):
             start_offset = start + ps['window_offset']
             stop_offset = start_offset + ps['window_length']
             take_slice = slice(start_offset, stop_offset)
-            starts_within_event = ps['window_offset'] >= 0
+            starts_within_event = (stop >= start_offset) and (start <= stop_offset)
             stops_within_event = (stop >= stop_offset) and (start <= stop_offset)
         else:
             raise(ValueError('The window_type is not recogonized.'))
@@ -230,18 +269,24 @@ def fit_init_models(ps: dict):
     annotations = pd.concat(annotations, ignore_index=True)
 
     # Apply the cut off time and quiet threshold
-    annotations = apply_quiet_and_cutoff_times(annots=annotations, quiet_th=ps['q_th'], co_th=ps['co_th'])
+    annotations = apply_quiet_and_cutoff_times(annots=annotations, quiet_th=ps['q_th'], co_th=ps['co_th'],
+                                               q_length=ps['q_length'])
 
     # ==================================================================================================================
     # Filter events by the behavior transitioned into or from if we are suppose to
+    print('Number of annotations before filtering out unwanted behaviors: ' + str(annotations.shape[0]))
+    print('Preceeding Behaviors before filtering: ' + str(annotations['beh_before'].unique()))
+    print('Behaviors transitioned into before filtering: ' + str(annotations['beh'].unique()))
+
     if ps['behs'] is not None:
         keep_inds = [i for i in annotations.index if annotations['beh'][i] in ps['behs']]
         annotations = annotations.loc[keep_inds]
 
     if ps['pre_behs'] is not None:
-        keep_inds = [i for i in annotations.index if annotations['beh'][i] in ps['pre_behs']]
+        keep_inds = [i for i in annotations.index if annotations['beh_before'][i] in ps['pre_behs']]
         annotations = annotations.loc[keep_inds]
 
+    print('Number of annotations after filtering out unwanted behaviors: ' + str(annotations.shape[0]))
     # ==================================================================================================================
     # Pool preceeding turns if requested
     if ps['pool_preceeding_turns']:
@@ -261,12 +306,7 @@ def fit_init_models(ps: dict):
         annotations = annotations.loc[~self_trans]
 
     # ==================================================================================================================
-    # Pool preceeding behaviors into one (G)rouped label if requested
-    if ps['pool_preceeding_behaviors']:
-        annotations['beh_before'] = 'G'
-
-    # ==================================================================================================================
-    # Now we read in the $\frac{\Delta F}{F}$ data for all subjects
+    # Now we read in the Delta F\F data for all subjects
     extracted_dff = dict()
     for s_id in analyze_subjs:
         print('Gathering neural data for subject ' + s_id)
@@ -336,22 +376,23 @@ def fit_init_models(ps: dict):
 
     analyze_annotations = annotations[keep_annots]
 
+    analyzed_n_subjs_per_trans = count_unique_subjs_per_transition(annotations, before_str='beh_before', after_str='beh')
+    analyzed_n_trans = count_transitions(annotations, before_str='beh_before', after_str='beh')
+
     # ==================================================================================================================
     # Generate our regressors and group indicator variables
     n_events = len(analyze_annotations)
     n_analyze_trans = len(analyze_trans)
     print('Number of analyzed events: ' + str(n_events))
+    print('Analyzed transitions: ' + ','.join([str(s) for s in analyze_trans]))
 
     unique_ids = analyze_annotations['subject_id'].unique()
     g = np.zeros(n_events)
     for u_i, u_id in enumerate(unique_ids):
         g[analyze_annotations['subject_id'] == u_id] = u_i
 
-    x = np.zeros([n_events, n_analyze_trans])
-    for row_i in range(n_events):
-        event_trans_code = analyze_annotations.iloc[row_i]['beh_before'] + analyze_annotations.iloc[row_i]['beh']
-        event_trans_col = np.argwhere(np.asarray(keep_codes) == event_trans_code)[0][0]
-        x[row_i, event_trans_col] = 1
+    x, mdl_vars = spont_beh_one_hot_encoding(tbl=analyze_annotations, prev_str='beh_before',
+                                             suc_str='beh', prev_ref=ps['pre_ref_beh'])
 
     # ==================================================================================================================
     # Now actually calculate our statistics
@@ -365,33 +406,26 @@ def fit_init_models(ps: dict):
         with mp.Pool(n_cpu) as pool:
             full_stats = pool.starmap(_init_fit_multi_subj_stats_f, [(x, dff[:, r_i], g, ps['alpha']) for r_i in range(n_rois)])
 
-        #def stats_f(x_i, y_i, g_i, alpha_i):
-        #    beta, acm, n_grps = grouped_linear_regression_ols_estimator(x=x_i, y=y_i, g=g_i)
-        #    stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
-        #    stats['beta'] = beta
-        #    stats['acm'] = acm
-        #    stats['n_grps'] = n_grps
-        #    return stats
     else:
         print('Performing stats for only one subject.')
         with mp.Pool(n_cpu) as pool:
             full_stats = pool.starmap(_init_fit_single_subj_stats_f, [(x, dff[:, r_i], g, ps['alpha']) for r_i in range(n_rois)])
 
-        #def stats_f(x_i, y_i, g_i, alpha_i):
-        #    n_grps = x_i.shape[0]
-        #    beta, acm = linear_regression_ols_estimator(x=x_i, y=y_i)
-        #    stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
-        #    stats['beta'] = beta
-        #    stats['acm'] = acm
-        #    stats['n_grps'] = n_grps
-        #    return stats
-
-    #full_stats = [stats_f(x_i=x, y_i=dff[:, r_i], g_i=g, alpha_i=ps['alpha']) for r_i in range(n_rois)]
+    # Here we do multiple comparisons corrections
+    p_vls = np.stack([s['non_zero_p'] for s in full_stats])
+    computed_p_vls = np.stack([s['computed'] for s in full_stats])
+    computed_p_vls_matrix = np.tile(computed_p_vls[:, np.newaxis], [1, p_vls.shape[1]])
+    corrected_p_vls_by, corrected_p_vls_bon = apply_multiple_comparisons_corrections(p_vls=p_vls,
+                                                                                     computed_p_vls=computed_p_vls_matrix)
+    for s_i, s in enumerate(full_stats):
+        s['non_zero_p_corrected_by'] = corrected_p_vls_by[s_i, :]
+        s['non_zero_p_corrected_bon'] = corrected_p_vls_bon[s_i, :]
 
     # ==================================================================================================================
     # Now save our results
 
-    rs = {'ps': ps, 'full_stats': full_stats, 'beh_trans': analyze_trans}
+    rs = {'ps': ps, 'full_stats': full_stats, 'beh_trans': analyze_trans, 'var_names': mdl_vars,
+          'n_subjs_per_trans': analyzed_n_subjs_per_trans, 'n_trans': analyzed_n_trans}
 
     save_path = Path(ps['save_folder']) / ps['save_name']
     with open(save_path, 'wb') as f:
@@ -439,17 +473,32 @@ def parallel_test_for_diff_than_mean_vls(ps: dict):
             basic_rs = pickle.load(f)
 
         # Perform stats
-        beh_trans = basic_rs['beh_trans']
+        var_names = basic_rs['var_names']
 
         print('Done loading results from: ' + str(ps['basic_rs_file']))
 
         n_cpu = mp.cpu_count()
         with mp.Pool(n_cpu) as pool:
             all_mean_stats = pool.starmap(test_for_diff_than_mean_vls,
-                                          [(s, beh_trans) for s in basic_rs['full_stats']])
+                                          [(s, var_names) for s in basic_rs['full_stats']])
+
+        # Here we do multiple comparisons corrections
+        p_vls = np.stack([s['eq_mean_p'] for s in all_mean_stats])
+        corrected_p_vls_by = np.zeros(p_vls.shape)
+        corrected_p_vls_by[:] = np.nan
+        corrected_p_vls_bon = np.zeros(p_vls.shape)
+        corrected_p_vls_bon[:] = np.nan
+        computed_p_vls = np.stack([s['computed'] for s in all_mean_stats]).astype('bool')
+        for c_i in range(p_vls.shape[1]):
+            cur_col_vls = p_vls[computed_p_vls[:, c_i], c_i]
+            _, cur_col_corrected_p_vls_by = apply_by(p_vls=cur_col_vls,
+                                                  alpha=.05)  # alpha is not used for the second output
+            corrected_p_vls_by[computed_p_vls[:, c_i], c_i] = cur_col_corrected_p_vls_by
+        for s_i, s in enumerate(all_mean_stats):
+            s['eq_mean_p_corrected_by'] = corrected_p_vls_by[s_i, :]
 
         # Now save our results
-        rs = {'ps': ps, 'full_stats': all_mean_stats, 'beh_trans': basic_rs['beh_trans']}
+        rs = {'ps': ps, 'full_stats': all_mean_stats, 'var_names': var_names}
 
         with open(save_path, 'wb') as f:
             pickle.dump(rs, f)
@@ -462,19 +511,53 @@ def parallel_test_for_diff_than_mean_vls(ps: dict):
 
 # Helper functions go here
 
-def _init_fit_multi_subj_stats_f(x_i, y_i, g_i, alpha_i):
-    beta, acm, n_grps = grouped_linear_regression_ols_estimator(x=x_i, y=y_i, g=g_i)
-    stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
+def _init_fit_multi_subj_stats_f(x_i, y_i, g_i, alpha_i, y_std_th=1E-10):
+
+    y_i_std = np.std(y_i)
+    if y_i_std > y_std_th:
+        beta, acm, n_grps = grouped_linear_regression_ols_estimator(x=x_i, y=y_i, g=g_i)
+        stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
+        stats_computed = True
+    else:
+        n_vars = x_i.shape[1]
+        beta = np.zeros(n_vars)
+        beta[:] = np.nan
+        acm = np.zeros([n_vars, n_vars])
+        acm[:] = np.nan
+        stats = {'non_zero_p': np.ones(n_vars)}
+        stats['non_zero_p'][:] = np.nan
+        n_grps = np.nan
+        stats_computed = False
+
     stats['beta'] = beta
     stats['acm'] = acm
     stats['n_grps'] = n_grps
+    stats['computed'] = stats_computed
+
     return stats
 
-def _init_fit_single_subj_stats_f(x_i, y_i, g_i, alpha_i):
-            n_grps = x_i.shape[0]
-            beta, acm = linear_regression_ols_estimator(x=x_i, y=y_i)
-            stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
-            stats['beta'] = beta
-            stats['acm'] = acm
-            stats['n_grps'] = n_grps
-            return stats
+
+def _init_fit_single_subj_stats_f(x_i, y_i, g_i, alpha_i, y_std_th=1E-10):
+
+    y_i_std = np.std(y_i)
+    if y_i_std > y_std_th:
+        n_grps = x_i.shape[0]
+        beta, acm = linear_regression_ols_estimator(x=x_i, y=y_i)
+        stats = grouped_linear_regression_acm_stats(beta=beta, acm=acm, n_grps=n_grps, alpha=alpha_i)
+        stats_computed = True
+    else:
+        n_vars = x_i.shape[1]
+        beta = np.zeros(n_vars)
+        beta[:] = np.nan
+        acm = np.zeros([n_vars, n_vars])
+        acm[:] = np.nan
+        stats = {'non_zero_p': np.ones(n_vars)}
+        stats['non_zero_p'][:] = np.nan
+        n_grps = np.nan
+        stats_computed = False
+
+    stats['beta'] = beta
+    stats['acm'] = acm
+    stats['n_grps'] = n_grps
+    stats['computed'] = stats_computed
+    return stats

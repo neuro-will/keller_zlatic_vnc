@@ -558,15 +558,15 @@ g
         if coef_lims is not None:
             return coef_lims
         else:
-            small_v = np.percentile(vls, perc[0])
-            large_v = np.percentile(vls, perc[1])
+            small_v = np.nanpercentile(vls, perc[0])
+            large_v = np.nanpercentile(vls, perc[1])
             v = np.max([np.abs(small_v), np.abs(large_v)])
             return [-v, v]
 
     def p_vl_clims(vls, perc):
         if min_p_vl is not None:
             return [np.log10(min_p_vl), np.log10(max_p_vl)]
-        small_v = np.percentile(vls, perc)
+        small_v = np.nanpercentile(vls, perc)
         if np.isinf(small_v):
             small_v = -100.0
         return [small_v, np.log10(max_p_vl)]
@@ -615,6 +615,7 @@ g
 
         coefs = rs['beh_stats'][var_name]['beta']
         p_vls = rs['beh_stats'][var_name]['p_values']
+        p_vls[np.isnan(p_vls)] = 1.0 # Make sure we visualize any nan p-values as non-significant
         log_p_vls = np.log10(p_vls)
         log_p_vls[np.asarray(p_vls) == 0] = -100.0
 
@@ -879,21 +880,24 @@ def test_for_different_than_avg_beta(beta: np.ndarray, acm: np.ndarray, n_grps: 
     return p_vls, detected
 
 
-def test_for_diff_than_mean_vls(stats: dict, beh_trans: Sequence[Tuple[str]], mn_th:float = 1e-10) -> dict:
+def test_for_diff_than_mean_vls(stats: dict, var_names: Sequence[Tuple[str]], mn_th:float = 1e-10) -> dict:
     """ This is a helper function which calculates post-hoc statistics for each group.
 
-    A group are all transitions that start with the same behavior.
+    A group are all behaviors either before a behavior (indicated by variable names of the form before_*) or
+    those that are behavior actually transitioned into (indicated by variable names of the form after_*).
 
     For a coefficient in each group, we calculate the p-value that it's value is not larger than the mean of all
     other coefficients in the group.
 
-    If there is only one transition in a group (e.g., for a given start behavior, we only have transitions into
-    a single end behavior, we also set the p-value of these coefficients to 1.)
+    If there is only one behavior in a group  we also set the beta and p-value for that coefficient to nan.
+
+    If the asymptotic covariance matrix for a group has an all 0 diagonal, we also do not calculate beta and p-values
+    for that group, instead setting them to nan.
 
     We return all p-values in a single vector, for ease of integration with plotting code, but it should be remembered
     that coefficinets were compared within groups.
 
-    Note: Before computing any stats, this function first makes sure there is a large enough numerical diference between
+    Note: Before computing any stats, this function first makes sure there is a large enough numerical difference between
     the coefficients for the individual behaviors.  If there is not, then beta is set to 0 for all behaviors and p values of 1
     are returned.  We do this to avoid issues that might arise with limited floating point precision when measuring very
     small differences between means. If the differences are small enough that floating point issues become a concern, then
@@ -903,12 +907,11 @@ def test_for_diff_than_mean_vls(stats: dict, beh_trans: Sequence[Tuple[str]], mn
 
     Args:
 
-        stats: Dictionary of statistical results, as saved by spont_events_initial_stats_calculation
+        stats: Dictionary of statistical results, as saved by fit_initial_models
 
-        beh_trans: list of behavior transitions stats were run over, as saved by
-        spont_events_initial_stats_calculation
+        var_names: list of variable names we compare, as saved by fit_initial_models
 
-        mn_th: The threshold to apply when determininig of coefficients for different behaviors are different enough
+        mn_th: The threshold to apply when determining if coefficients for different behaviors are different enough
         to justify performing further statistics (see note above)
 
     Returns:
@@ -919,34 +922,38 @@ def test_for_diff_than_mean_vls(stats: dict, beh_trans: Sequence[Tuple[str]], mn
 
             'eq_mean_p': The p-value testing that each value of beta is different than 0.
 
+            'computed': An array the same shape as beta.  computed[i] is true if stats were computed for that
+            coefficient and false if they were not computed (for any of the reasons above)
+
     """
 
-    n_coefs = len(beh_trans)
+    n_coefs = len(var_names)
     p_vls = np.zeros(n_coefs)
+    p_vls[:] = np.nan
     beta = np.zeros(n_coefs)
-
-    unique_grp_behs = set([t[0] for t in beh_trans])
+    beta[:] = np.nan
+    computed = np.zeros(n_coefs)
 
     # Do a quick check to see that mean values for each behavior were different enough to even warrnat doing
     # stats.  If values were too close, we are going to run into floating points issues, and if the differences
     # were that small anyway, we lose nothing by not checking for differences
     mn_diffs = np.abs(stats['beta'] - np.mean(stats['beta']))
-    if np.all(mn_diffs < mn_th):
+    if np.all(mn_diffs < mn_th) | stats['computed'] == False:
         new_stats = dict()
         new_stats['beta'] = beta
-        new_stats['eq_mean_p'] = np.ones(n_coefs)
+        new_stats['eq_mean_p'] = p_vls
+        new_stats['computed'] = computed
         return new_stats
 
     # Process results for each group
-    for grp_b in unique_grp_behs:
-        keep_cols = np.asarray(np.argwhere([1 if b[0] == grp_b else 0 for b in beh_trans])).squeeze()
+    for grp_b in ['before', 'after']:
+        keep_cols = np.asarray(np.argwhere([1 if b[0:len(grp_b)] == grp_b else 0 for b in var_names])).squeeze()
 
-        p_vls[keep_cols] = 1 # Initially set all p-values to this group to 1, we will set the p-value
-                             # for the largest coefficient in the code below, but do denote that the
-                             # coefficients which are not largest are not to be considered, we set their
-                             # p-values to 1.
+        # Initially set all p-values to 1 - that way if we don't end up computing them for this group, they are
+        # already set to the write variable (see comments below about why we might not compute p-values)
+        p_vls[keep_cols] = 1
 
-        if keep_cols.ndim > 0: # Means we have more than one coefficient
+        if keep_cols.ndim > 0:  # Means we have more than one coefficient
             grp_beta = stats['beta'][keep_cols]
             grp_acm = stats['acm'][np.ix_(keep_cols, keep_cols)]
             if not np.all(np.diag(grp_acm) == np.zeros(grp_acm.shape[0])):
@@ -961,6 +968,7 @@ def test_for_diff_than_mean_vls(stats: dict, beh_trans: Sequence[Tuple[str]], mn
                     new_grp_beta[b_i] = grp_beta[b_i] - ((np.sum(grp_beta) - grp_beta[b_i])/(n_grp_coefs - 1))
 
                 beta[keep_cols] = new_grp_beta
+                computed[keep_cols] = 1
             else:
                 pass
                 # We don't need to do anything - because we already set all p_vls for this group to 1
@@ -968,14 +976,12 @@ def test_for_diff_than_mean_vls(stats: dict, beh_trans: Sequence[Tuple[str]], mn
             pass
             # We don't need to do anything - because we already set all p_vls for this group to 1
 
-
-
     new_stats = dict()
     new_stats['beta'] = beta
     new_stats['eq_mean_p'] = p_vls
+    new_stats['computed'] = computed
 
     return new_stats
-
 
 
 def test_for_largest_amplitude_beta(beta: np.ndarray, acm: np.ndarray, n_grps: int, alpha: float,

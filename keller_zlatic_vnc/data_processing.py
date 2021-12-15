@@ -129,7 +129,7 @@ def apply_quiet_and_cutoff_times(annots: pd.DataFrame, quiet_th: int, co_th: int
             update_beh_start_str = 'beh_before_start'
             update_beh_end_str = 'beh_before_end'
         else:
-            pre_event_str = 'start'
+            pre_event_str = 'end'
             succ_event_str = 'beh_after_start'
             update_beh_str = 'beh_after'
             update_beh_start_str = 'beh_after_start'
@@ -140,8 +140,6 @@ def apply_quiet_and_cutoff_times(annots: pd.DataFrame, quiet_th: int, co_th: int
         known_quiet = delta >= quiet_th
         cur_annots.loc[~known_trans, update_beh_str] = 'U'
         cur_annots.loc[known_quiet, update_beh_str] = 'Q'
-
-        # Debug
 
         new_queit_start_inds = np.ceil(delta[known_quiet]/2) + cur_annots.loc[known_quiet, pre_event_str]
         new_queit_end_inds = new_queit_start_inds + q_length
@@ -1357,16 +1355,19 @@ def find_usable_partial_overlap_events(ints: np.ndarray):
     return good_rows
 
 
-def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: str = 'dj') -> pd.DataFrame:
+def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: str = 'dj',
+                                          max_event_length: int = 100) -> pd.DataFrame:
     """ Gets basic clean annotations from a set of full annotation.
 
     This function will:
         1) Remove any events which do not have a marked behavior
-        2) Search for "clean" events - see function find_clean_events
-        3) Find the events before and after each clean event, adding this information to the
+        2) Remove any events which are too long
+        3) Remove any events with a start before the end
+        4) Search for "clean" events - see function find_clean_events
+        5) Find the events before and after each clean event, adding this information to the
         DataFrame - see the function find_before_and_after_events
-        4) Remove any events which do not have a known before or after event
-        5) Remove any stimulus events or those which are preceeded or succeeded by a stimulus event
+        6) Remove any events which do not have a known before or after event
+        7) Remove any stimulus events or those which are preceeded or succeeded by a stimulus event
 
     and return the result in final DataFrame.
 
@@ -1379,6 +1380,8 @@ def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: 
 
         clean_def: The definition to use when searching for clean events.  See function find_clean_events
 
+        max_event_length: The maximum length (in frames) for any event.  Any events longer than this will be removed.
+
     Returns:
 
         basic_clean_annots: The final dataframe with the processed events.
@@ -1387,6 +1390,15 @@ def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: 
 
     # Get rid of any events without a know behavior type
     full_annots.dropna(inplace=True)
+
+    # Get rid of any events which are too long
+    event_durs = full_annots['start'] - full_annots['end'] + 1 # +1 for inclusive indexing
+    not_long_events = event_durs <= max_event_length
+    full_annots = full_annots[not_long_events]
+
+    # Get rid of any events with a start before the end
+    correct_order_events = full_annots['start'] <= full_annots['end']
+    full_annots = full_annots[correct_order_events]
 
     # Now clean up events and note supplemental information
     clean_annotations = full_annots[find_clean_events(full_annots, clean_def=clean_def)].copy()

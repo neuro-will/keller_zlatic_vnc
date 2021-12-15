@@ -31,10 +31,9 @@ from keller_zlatic_vnc.whole_brain.spontaneous import fit_init_models
 base_ps = dict()
 
 # Folders containing a4 and a9 annotation data
-base_ps['annot_folders'] = [[r'A:\projects\keller_vnc\data\full_annotations\em_volume_behavior_csv']]
+base_ps['annot_folders'] = [['ds', r'A:\projects\keller_vnc\data\full_annotations\em_volume_behavior_csv']]
 
 # File containing locations to registered volumes
-#ps['volume_loc_file'] = r'\\dm11\bishoplab\projects\keller_vnc\data\experiment_data_locations.xlsx'
 base_ps['volume_loc_file'] = r'A:\projects\keller_vnc\data\EM_volume_experiment_data_locations.xlsx'
 
 # List subjects we do not want to include in the analysis
@@ -50,19 +49,19 @@ base_ps['dataset_base_folder'] = r'K:\\SV4'
 base_ps['clean_event_def'] = 'po'  # 'dj' or 'po'
 
 # Specify the threshold we use (in number of stacks) to determine when a quiet transition has occurred
-base_ps['q_th'] = 55
+base_ps['q_th'] = 20
 
 # Specify the cut off threshold we use (in number of stacks) to determine when a real transition has occurred
-base_ps['co_th'] = [3, 6]
+base_ps['co_th'] = 3 #[3,6]
 
-# Specify the set of behaviors transitioned into for events we analyze
-base_ps['behs'] = [['B', 'F', 'TL', 'TR', 'H']]
+# Specify the number of frames to use for the duration of marked quiet events
+base_ps['q_length'] = 3
 
-# Specify the preceding behaviors for events we analyze
-base_ps['pre_behs'] = [['Q', 'B', 'F', 'TL', 'TR', 'H', 'U']]
+# Specify the set of acceptable behaviors transitioned into for events we analyze
+base_ps['behs'] = ['ds', 'B', 'F', 'TL', 'TR', 'H']
 
-# True if we want to pool preceeding behaviors
-base_ps['pool_preceeding_behaviors'] = False
+# Specify the acceptable preceding behaviors for events we analyze
+base_ps['pre_behs'] = ['ds', 'Q', 'B', 'F', 'TL', 'TR', 'H']
 
 # True if we want to pool preceding left and right turns into one category (only applies if pool_preceeding_behaviors
 # is false)
@@ -73,6 +72,9 @@ base_ps['pool_succeeding_turns'] = False
 
 # True if we should remove events that transition from a behavior to that same behavior
 base_ps['remove_st'] = False
+
+# The preceding behavior we use for the reference condition
+base_ps['pre_ref_beh'] = 'Q'
 
 # Data to calculate Delta F/F for in each dataset
 base_ps['f_ts_str'] = 'f_1_5_5'
@@ -95,18 +97,18 @@ base_ps['alpha'] = .05
 base_ps['window_type'] = 'start_locked'  # 'whole_event' or 'start_locked'
 
 # If we are using a window locked to event start or stop, we give the relative offset and window length here
-base_ps['window_offset'] = [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3]
-base_ps['window_length'] = 1
+base_ps['window_offset'] = 0 #[-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3]
+base_ps['window_length'] = 3
 
 # Specify if we only consider events where the extracted dff window is entirely contained within the event
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\ind_trans_window_sweep\ind_collections'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\testing'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
-base_ps['save_str'] = 'sweep'
+base_ps['save_str'] = 'testing'
 
 # ======================================================================================================================
 # Generate dictionaries for all combinations of parameters
