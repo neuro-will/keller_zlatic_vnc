@@ -22,6 +22,7 @@ from keller_zlatic_vnc.data_processing import count_unique_subjs_per_transition
 from keller_zlatic_vnc.data_processing import find_before_and_after_events
 from keller_zlatic_vnc.data_processing import generate_standard_id_for_full_annots
 from keller_zlatic_vnc.data_processing import read_full_annotations
+from keller_zlatic_vnc.data_processing import read_raw_transitions_from_excel
 from keller_zlatic_vnc.data_processing import read_trace_data
 from keller_zlatic_vnc.data_processing import single_cell_extract_dff_with_anotations
 from keller_zlatic_vnc.linear_modeling import one_hot_from_table
@@ -45,6 +46,9 @@ base_ps['handle_trace_folder'] = 'Handle'
 # Location of folders containing annotations
 base_ps['a4_annot_folder'] = r'/Volumes/bishoplab/projects/keller_vnc/data/full_annotations/behavior_csv_cl_A4'
 base_ps['a9_annot_folder'] = r'/Volumes/bishoplab/projects/keller_vnc/data/full_annotations/behavior_csv_cl_A9'
+
+# Location of file containing Chen's annotations - we use this to filter down to only good stimulus events
+base_ps['chen_file'] = r'/Volumes/bishoplab/projects/keller_vnc/data/extracted_dff_v2/transition_list_CW_11202021.xlsx'
 
 # Specify the type of neurons we analyze
 base_ps['cell_type'] = ['basin']  # 'a00c' 'handle', 'basin'
@@ -251,6 +255,16 @@ for subj in list(data['subject_id'].unique()):
 # Get rid of any events where we could not classify the type of preceeding or succeeding behavior
 # ======================================================================================================================
 subj_events = subj_events.dropna()
+
+
+# ======================================================================================================================
+# TODO: Get rid of any stimulus events which are not also in Chen's annotations - we do this because some of
+# the stimulus events in the full annotations (Nadine's annotations) should be removed because of artefacts. Chen's
+# annotations only include the stimulus events we should analyze.
+# ======================================================================================================================
+chen_events = read_raw_transitions_from_excel(file=ps['chen_file'])
+chen_events = chen_events.rename(columns={'Manipulation Start': 'start', 'Manipulation End': 'end'})
+
 
 # ======================================================================================================================
 # Now process all results
