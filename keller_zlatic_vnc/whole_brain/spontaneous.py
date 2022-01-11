@@ -182,9 +182,17 @@ def fit_init_models(ps: dict):
             enforce_contained_events: If true, only analyze behaviors with start and stop times contained within the
             dff window
 
-            save_folder: Folder we save events into
+            save_folder: Folder we save events into. If None, results will not be saved.
 
             save_name: Name of the file to save results in
+
+    Returns:
+
+            rs: The fitting results
+
+            ananlyze_annotations: The annotations for all events that were used in model fitting
+
+            dff: The full recorded of dff for the last loaded subject (this is mainly provided for debugging)
 
     """
 
@@ -326,6 +334,7 @@ def fit_init_models(ps: dict):
         f=dataset.ts_data[ps['f_ts_str']]['vls'][:]
         b=dataset.ts_data[ps['bl_ts_str']]['vls'][:]
         dff = calc_dff(f=f, b=b, background=ps['background'], ep=ps['ep'])
+        return_dff = dff
 
         # Get the dff for each event
         s_events = annotations[annotations['subject_id'] == s_id]
@@ -427,9 +436,13 @@ def fit_init_models(ps: dict):
     rs = {'ps': ps, 'full_stats': full_stats, 'beh_trans': analyze_trans, 'var_names': mdl_vars,
           'n_subjs_per_trans': analyzed_n_subjs_per_trans, 'n_trans': analyzed_n_trans}
 
-    save_path = Path(ps['save_folder']) / ps['save_name']
-    with open(save_path, 'wb') as f:
-        pickle.dump(rs, f)
+    if ps['save_folder'] is not None:
+        save_path = Path(ps['save_folder']) / ps['save_name']
+        with open(save_path, 'wb') as f:
+            pickle.dump(rs, f)
+
+    # Provide output
+    return rs, analyze_annotations, return_dff
 
 
 def parallel_test_for_diff_than_mean_vls(ps: dict):
@@ -484,18 +497,12 @@ def parallel_test_for_diff_than_mean_vls(ps: dict):
 
         # Here we do multiple comparisons corrections
         p_vls = np.stack([s['eq_mean_p'] for s in all_mean_stats])
-        corrected_p_vls_by = np.zeros(p_vls.shape)
-        corrected_p_vls_by[:] = np.nan
-        corrected_p_vls_bon = np.zeros(p_vls.shape)
-        corrected_p_vls_bon[:] = np.nan
         computed_p_vls = np.stack([s['computed'] for s in all_mean_stats]).astype('bool')
-        for c_i in range(p_vls.shape[1]):
-            cur_col_vls = p_vls[computed_p_vls[:, c_i], c_i]
-            _, cur_col_corrected_p_vls_by = apply_by(p_vls=cur_col_vls,
-                                                  alpha=.05)  # alpha is not used for the second output
-            corrected_p_vls_by[computed_p_vls[:, c_i], c_i] = cur_col_corrected_p_vls_by
+        corrected_p_vls_by, corrected_p_vls_bon = apply_multiple_comparisons_corrections(p_vls=p_vls,
+                                                                                         computed_p_vls=computed_p_vls)
         for s_i, s in enumerate(all_mean_stats):
             s['eq_mean_p_corrected_by'] = corrected_p_vls_by[s_i, :]
+            s['eq_mean_p_corrected_bon'] = corrected_p_vls_bon[s_i, :]
 
         # Now save our results
         rs = {'ps': ps, 'full_stats': all_mean_stats, 'var_names': var_names}

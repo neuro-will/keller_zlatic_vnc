@@ -12,23 +12,26 @@ import glob
 import os
 from pathlib import Path
 import pickle
+import re
 import numpy as np
 
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_brain_videos_and_max_projs
 
 # Specify folder results are saved in
-results_folder = r'A:\projects\keller_vnc\results\single_subject\testing'
+results_folder = r'A:\projects\keller_vnc\results\single_subject\testing_sweep'
 
 # Switch for setting additional parameters below based on if we are making images for the initial stats or after
 # comparing each coefficent to the mean of the others in its group
 stat_types = 'mean_cmp' # 'initial' or 'mean_cmp'
 
+multi_cmp_type = 'by' #'none', 'bon' or 'by'
+
 
 # Provide a string suffix specifying the results file
 if stat_types == 'initial':
-    rs_suffix = '*.pkl'
+    rs_str = '.*\d+.pkl'
 else:
-    rs_suffix = '*_mean_cmp_stats.pkl'
+    rs_str = '.*_mean_cmp_stats.pkl'
 
 # Specify location of overlay files - these are for max projections
 overlay_files = [r'A:\projects\keller_vnc\data\overlays\horz_mean.png',
@@ -37,9 +40,16 @@ overlay_files = [r'A:\projects\keller_vnc\data\overlays\horz_mean.png',
 
 # The string p-values are stored under: 'non_zero_p' or 'eq_mean_p'
 if stat_types == 'initial':
-    p_vl_str = 'non_zero_p_corrected'
+    p_vl_str = 'non_zero_p'
 else:
-    p_vl_str = 'eq_mean_p_corrected'
+    p_vl_str = 'eq_mean_p'
+
+if multi_cmp_type == 'bon':
+    p_vl_str += '_corrected_bon'
+elif multi_cmp_type == 'by':
+    p_vl_str += '_corrected_by'
+
+print(p_vl_str)
 
 # Lower percentage of p-values that brightness saturates at - should be between 0 and 100
 min_p_vl_perc = .0001
@@ -51,10 +61,8 @@ roi_group = 'rois_1_5_5'
 ex_dataset_file = r'K:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\dataset.pkl'
 
 # Find results to generate images and maps for
-results_files = glob.glob(str(Path(results_folder) / rs_suffix))
-
-# Filter our place holder files
-results_files = [f for f in results_files if f[0] != '.']
+results_files = glob.glob(str(Path(results_folder) / '*.pkl'))
+results_files = [f for f in results_files if re.match(rs_str, f)]
 
 # Filter our results we already have images for
 results_files = [f for f in results_files if not os.path.exists(Path(f).parent / (Path(f).stem + '_images'))]

@@ -49,10 +49,10 @@ base_ps['dataset_base_folder'] = r'K:\\SV4'
 base_ps['clean_event_def'] = 'po'  # 'dj' or 'po'
 
 # Specify the threshold we use (in number of stacks) to determine when a quiet transition has occurred
-base_ps['q_th'] = 20
+base_ps['q_th'] = 21
 
 # Specify the cut off threshold we use (in number of stacks) to determine when a real transition has occurred
-base_ps['co_th'] = 3 #[3,6]
+base_ps['co_th'] = 6 #[3,6]
 
 # Specify the number of frames to use for the duration of marked quiet events
 base_ps['q_length'] = 3
@@ -88,7 +88,7 @@ base_ps['ep'] = 20
 base_ps['min_n_subjs'] = 1
 
 # Min number of events we must observe a transition in for us to analyze it
-base_ps['min_n_events'] = 3
+base_ps['min_n_events'] = 1
 
 # Alpha value for thresholding p-values when calculating stats - this is not used in producing the final maps
 base_ps['alpha'] = .05
@@ -97,14 +97,14 @@ base_ps['alpha'] = .05
 base_ps['window_type'] = 'start_locked'  # 'whole_event' or 'start_locked'
 
 # If we are using a window locked to event start or stop, we give the relative offset and window length here
-base_ps['window_offset'] = 0 #[-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3]
+base_ps['window_offset'] = [-9, -6, -3, 0, 3]
 base_ps['window_length'] = 3
 
 # Specify if we only consider events where the extracted dff window is entirely contained within the event
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\testing'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\testing_sweep'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
