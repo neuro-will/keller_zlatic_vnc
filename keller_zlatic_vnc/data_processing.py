@@ -1171,6 +1171,34 @@ def count_unique_subjs_per_transition(table: pd.DataFrame, behs: Sequence[str] =
     return pd.DataFrame(n_subjs_per_trans, index=behs, columns=behs)
 
 
+def down_select_events(tbl_1: pd.DataFrame, tbl_2: pd.DataFrame) -> pd.DataFrame:
+    """ Down selects events in table 1 by looking for those which are also in table 2.
+    Args:
+
+        tbl_1: The table to down select events from.  Should have the columns 'subject_id', 'start' and 'end'
+
+        tbl_2: The table of events to down select to.  Only events from tbl_1 that are also in tbl_2 will be retained
+        from tbl_1.  Should have the same columns as tbl_1.
+
+    Returns:
+        ds_tbl: A down-sampled copy of tbl_1.
+    """
+    tbl_1 = copy.deepcopy(tbl_1)
+
+    keep_indices = []
+    for idx_1, row_1 in tbl_1.iterrows():
+        cur_id = row_1['subject_id']
+        cur_start = row_1['start']
+        cur_end = row_1['end']
+        match = (tbl_2['subject_id'] == cur_id) & (tbl_2['start'] == cur_start) & (tbl_2['end'] == cur_end)
+        if match.any():
+            keep_indices.append(idx_1)
+        else:
+            print('Removing event from: ' + str(cur_start) + '-' + str(cur_end) + ' for subject ' + str(cur_id))
+
+    return tbl_1.loc[keep_indices]
+
+
 def find_clean_events(annotations: pd.DataFrame, clean_def: str = 'dj') -> np.ndarray:
     """ Returns clean events from full annotations.
 

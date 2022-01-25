@@ -19,6 +19,7 @@ from janelia_core.stats.regression import visualize_coefficient_stats
 
 from keller_zlatic_vnc.data_processing import calc_dff
 from keller_zlatic_vnc.data_processing import count_unique_subjs_per_transition
+from keller_zlatic_vnc.data_processing import down_select_events
 from keller_zlatic_vnc.data_processing import find_before_and_after_events
 from keller_zlatic_vnc.data_processing import generate_standard_id_for_full_annots
 from keller_zlatic_vnc.data_processing import read_full_annotations
@@ -51,9 +52,13 @@ base_ps['a9_annot_folder'] = r'/Volumes/bishoplab/projects/keller_vnc/data/full_
 base_ps['chen_file'] = r'/Volumes/bishoplab/projects/keller_vnc/data/extracted_dff_v2/transition_list_CW_11202021.xlsx'
 
 # Specify the type of neurons we analyze
-base_ps['cell_type'] = ['basin']  # 'a00c' 'handle', 'basin'
+base_ps['cell_type'] = ['a00c']  # 'a00c' 'handle', 'basin'
 
 # Specfy the cell ids we analyze as a list. If None, we analyze all cell ids
+
+# a00c - debug only
+if True:
+    base_ps['cell_ids'] = None
 
 # a00c
 if False:
@@ -63,7 +68,7 @@ if False:
                            ['ds', 'postL', 'postR']]
 
 # basin
-if True:
+if False:
     base_ps['cell_ids'] = [None,
                            ['ds', 'A1R', 'A1L', '1AL', '1AR'],
                            ['ds', 'A2L', 'A2R', '2AL', '2AR'],
@@ -96,10 +101,10 @@ if False:
                            ['ds', 'SEG']]
 
 # Specify the manipulation target for subjects we want to analyze, None indicates both A4 and A9
-base_ps['man_tgt'] = [None, 'A4', 'A9']
+base_ps['man_tgt'] = 'A4' #[None, 'A4', 'A9']
 
 # Say if we should pool preceeding and succeeding turns
-base_ps['pool_turns'] = [True, False]
+base_ps['pool_turns'] = True #[True, False]
 
 # Parameters for declaring preceeding and succeeding quiet behaviors
 base_ps['pre_q_th'] = 50
@@ -139,11 +144,11 @@ base_ps['dff_calc_params']['background'] = 100
 base_ps['dff_calc_params']['ep'] = 20
 
 # The test type we want to peform
-base_ps['test_type'] = ['prediction_dependence',
-                        'decision_dependence',
-                        'state_dependence',
-                        'after_reporting',
-                        'before_reporting']
+base_ps['test_type'] = 'after_reporting' #['prediction_dependence',
+                       # 'decision_dependence',
+                       # 'state_dependence',
+                       # 'after_reporting',
+                       # 'before_reporting']
 
 # The significance level we reject individual null hypotheses at at
 base_ps['ind_alpha'] = .05
@@ -152,7 +157,7 @@ base_ps['ind_alpha'] = .05
 base_ps['mc_alpha'] = .05
 
 # The folder where we should save results
-save_loc = '/Volumes/bishoplab/projects/keller_vnc/results/single_cell/publication_results_v0/basin'
+save_loc = '/Users/bishopw/Desktop/debug'
 save_pdf_name = 'all_tests.pdf'
 
 # ======================================================================================================================
@@ -258,13 +263,13 @@ subj_events = subj_events.dropna()
 
 
 # ======================================================================================================================
-# TODO: Get rid of any stimulus events which are not also in Chen's annotations - we do this because some of
+# Get rid of any stimulus events which are not also in Chen's annotations - we do this because some of
 # the stimulus events in the full annotations (Nadine's annotations) should be removed because of artefacts. Chen's
 # annotations only include the stimulus events we should analyze.
 # ======================================================================================================================
-chen_events = read_raw_transitions_from_excel(file=ps['chen_file'])
+chen_events = read_raw_transitions_from_excel(file=base_ps['chen_file'])
 chen_events = chen_events.rename(columns={'Manipulation Start': 'start', 'Manipulation End': 'end'})
-
+subj_events = down_select_events(tbl_1=subj_events, tbl_2=chen_events)
 
 # ======================================================================================================================
 # Now process all results
@@ -346,27 +351,27 @@ for ps_i, ps in enumerate(ps_combs):
         data_cp = data_cp[data_cp['cell_id'].isin(ps['cell_ids'])]
 
     # Mark preceeding and succeeding quiet events
-    delta_before = subj_events['start'] - subj_events['beh_before_end']
-    delta_after = subj_events['beh_after_start'] - subj_events['end']
+    delta_before = subj_events_cp['start'] - subj_events_cp['beh_before_end']
+    delta_after = subj_events_cp['beh_after_start'] - subj_events_cp['end']
 
     before_quiet_inds = delta_before > ps['pre_q_th']
     after_quiet_inds = delta_after > ps['succ_q_th']
 
-    subj_events.loc[before_quiet_inds, 'beh_before'] = 'Q'
-    subj_events.loc[after_quiet_inds, 'beh_after'] = 'Q'
+    subj_events_cp.loc[before_quiet_inds, 'beh_before'] = 'Q'
+    subj_events_cp.loc[after_quiet_inds, 'beh_after'] = 'Q'
 
     # Mark the start and stop of the marked quiet events
-    new_before_start = subj_events[before_quiet_inds]['start'] + ps['pre_q_offset']
+    new_before_start = subj_events_cp[before_quiet_inds]['start'] + ps['pre_q_offset']
     new_before_end = new_before_start + ps['pre_q_event_l'] - 1  # Minus 1 for inclusive indexing
-    subj_events.loc[before_quiet_inds, 'beh_before_start'] = new_before_start
-    subj_events.loc[before_quiet_inds, 'beh_before_end'] = new_before_end
+    subj_events_cp.loc[before_quiet_inds, 'beh_before_start'] = new_before_start
+    subj_events_cp.loc[before_quiet_inds, 'beh_before_end'] = new_before_end
 
-    new_after_start = (np.ceil((subj_events[after_quiet_inds]['beh_after_start'] -
-                                subj_events[after_quiet_inds]['end']) / 2) +
-                       subj_events[after_quiet_inds]['end'])
+    new_after_start = (np.ceil((subj_events_cp[after_quiet_inds]['beh_after_start'] -
+                                subj_events_cp[after_quiet_inds]['end']) / 2) +
+                       subj_events_cp[after_quiet_inds]['end'])
     new_after_end = new_after_start + ps['succ_q_event_l'] - 1  # Minus 1 for inclusive indexing
-    subj_events.loc[after_quiet_inds, 'beh_after_start'] = new_after_start
-    subj_events.loc[after_quiet_inds, 'beh_after_end'] = new_after_end
+    subj_events_cp.loc[after_quiet_inds, 'beh_after_start'] = new_after_start
+    subj_events_cp.loc[after_quiet_inds, 'beh_after_end'] = new_after_end
 
     # Down select events based on manipulation target
     if ps['man_tgt'] is not None:
@@ -481,6 +486,7 @@ for ps_i, ps in enumerate(ps_combs):
         rs['init_fit'] = {'beta': beta, 'acm': acm, 'n_grps': n_grps}
         rs['init_fit_stats'] = mdl_stats
         rs['cmp_stats'] = {'cmp_vars': cmp_vars, 'cmp_p_vls': cmp_p_vls}
+        rs['full_tbl'] = full_tbl
 
         save_file_name = 'rs_' + str(ps_i) + '.pkl'
         with open(Path(save_loc) / save_file_name, 'wb') as f:
@@ -534,7 +540,8 @@ for ps_i, ps in enumerate(ps_combs):
                 pdf.set_text_color(0, 1, 1)
             pdf.cell(40, 5, var + ': ' + '{:.2e}'.format(cmp_p_vls[i]) + ', {:2e}'.format(cmp_p_vls_bonferroni[i]), ln=1)
         pdf.set_text_color(0, 1, 1)
-    except (np.linalg.LinAlgError, RuntimeError):
+    except (np.linalg.LinAlgError, RuntimeError, ValueError) as err:
+        raise
         print('Error detected. Skipping this analysis.')
 
 
