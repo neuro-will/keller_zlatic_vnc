@@ -56,7 +56,7 @@ base_ps['cell_type'] = ['a00c']  # 'a00c' 'handle', 'basin'
 
 # Specfy the cell ids we analyze as a list. If None, we analyze all cell ids
 
-# a00c - debug only
+# Debug only
 if True:
     base_ps['cell_ids'] = None
 
@@ -101,7 +101,7 @@ if False:
                            ['ds', 'SEG']]
 
 # Specify the manipulation target for subjects we want to analyze, None indicates both A4 and A9
-base_ps['man_tgt'] = 'A4' #[None, 'A4', 'A9']
+base_ps['man_tgt'] = None #[None, 'A4', 'A9']
 
 # Say if we should pool preceeding and succeeding turns
 base_ps['pool_turns'] = True #[True, False]
@@ -111,7 +111,7 @@ base_ps['pre_q_th'] = 50
 base_ps['succ_q_th'] = 9
 
 # Parameters for determing the location of the marked preceeding and succeeding quiet events
-base_ps['pre_q_offset'] = -4 # Offset in time points from start of stimulus
+#base_ps['pre_q_offset'] = -4 # Offset in time points from start of stimulus
 base_ps['pre_q_event_l'] = 3 # Event length for the preceeding quiet event
 base_ps['succ_q_event_l'] = 3 # Event length for the succeeding quiet event
 
@@ -145,10 +145,10 @@ base_ps['dff_calc_params']['ep'] = 20
 
 # The test type we want to peform
 base_ps['test_type'] = 'after_reporting' #['prediction_dependence',
-                       # 'decision_dependence',
-                       # 'state_dependence',
-                       # 'after_reporting',
-                       # 'before_reporting']
+                        #'decision_dependence',
+                        #'state_dependence',
+                        #'after_reporting',
+                        #'before_reporting']
 
 # The significance level we reject individual null hypotheses at at
 base_ps['ind_alpha'] = .05
@@ -157,19 +157,21 @@ base_ps['ind_alpha'] = .05
 base_ps['mc_alpha'] = .05
 
 # The folder where we should save results
-save_loc = '/Users/bishopw/Desktop/debug'
+save_loc = '/Users/bishopw/Desktop/debug' #'/Volumes/bishoplab/projects/keller_vnc/results/single_cell/publication_results_v2/basin'
 save_pdf_name = 'all_tests.pdf'
 
 # ======================================================================================================================
 # Do some basic checks here
 # ======================================================================================================================
 
-if -base_ps['pre_q_offset'] >= (base_ps['pre_q_th'] + 1):  # +1 because of > in applying threshold
-    raise (RuntimeError('-pre_q_offset must be one less than pre_q_th + 1'))
-if -base_ps['pre_q_offset'] < base_ps['pre_q_event_l']:
-    raise (RuntimeError('-pre_q_offset must be greater than or equal to pre_q_event_l'))
-if base_ps['succ_q_event_l'] > np.ceil(base_ps['succ_q_th'] / 2):
-    raise (RuntimeError('succ_q_event_l must be greater than floor(succ_q_th)/2)'))
+#if -base_ps['pre_q_offset'] >= (base_ps['pre_q_th'] + 1):  # +1 because of > in applying threshold
+#    raise (RuntimeError('-pre_q_offset must be one less than pre_q_th + 1'))
+#if -base_ps['pre_q_offset'] < base_ps['pre_q_event_l']:
+#    raise (RuntimeError('-pre_q_offset must be greater than or equal to pre_q_event_l'))
+if base_ps['succ_q_event_l'] > np.floor(base_ps['succ_q_th'] / 2):
+    raise (RuntimeError('succ_q_event_l must be less than floor(succ_q_th)/2)'))
+if base_ps['pre_q_event_l'] > np.floor(base_ps['pre_q_th'] / 2):
+    raise (RuntimeError('pre_q_event_l must be less than floor(pre_q_th)/2)'))
 
 # ======================================================================================================================
 # Generate parameter combinations
@@ -261,7 +263,6 @@ for subj in list(data['subject_id'].unique()):
 # ======================================================================================================================
 subj_events = subj_events.dropna()
 
-
 # ======================================================================================================================
 # Get rid of any stimulus events which are not also in Chen's annotations - we do this because some of
 # the stimulus events in the full annotations (Nadine's annotations) should be removed because of artefacts. Chen's
@@ -347,7 +348,6 @@ for ps_i, ps in enumerate(ps_combs):
 
     # Down select by cell id
     if ps['cell_ids'] is not None:
-        print(ps['cell_ids'])
         data_cp = data_cp[data_cp['cell_id'].isin(ps['cell_ids'])]
 
     # Mark preceeding and succeeding quiet events
@@ -361,7 +361,10 @@ for ps_i, ps in enumerate(ps_combs):
     subj_events_cp.loc[after_quiet_inds, 'beh_after'] = 'Q'
 
     # Mark the start and stop of the marked quiet events
-    new_before_start = subj_events_cp[before_quiet_inds]['start'] + ps['pre_q_offset']
+    #new_before_start = subj_events_cp[before_quiet_inds]['start'] + ps['pre_q_offset']
+    new_before_start = (np.ceil((subj_events_cp[before_quiet_inds]['start'] -
+                                subj_events_cp[before_quiet_inds]['beh_before_end']) / 2) +
+                       subj_events_cp[before_quiet_inds]['beh_before_end'])
     new_before_end = new_before_start + ps['pre_q_event_l'] - 1  # Minus 1 for inclusive indexing
     subj_events_cp.loc[before_quiet_inds, 'beh_before_start'] = new_before_start
     subj_events_cp.loc[before_quiet_inds, 'beh_before_end'] = new_before_end
@@ -426,7 +429,6 @@ for ps_i, ps in enumerate(ps_combs):
     # Fit initial models and calculate initial statistics
     before_behs = full_tbl['beh_before'].unique()
     after_behs = full_tbl['beh_after'].unique()
-
 
     try:
         if not ps['ref_beh'] in set(before_behs):
@@ -541,7 +543,6 @@ for ps_i, ps in enumerate(ps_combs):
             pdf.cell(40, 5, var + ': ' + '{:.2e}'.format(cmp_p_vls[i]) + ', {:2e}'.format(cmp_p_vls_bonferroni[i]), ln=1)
         pdf.set_text_color(0, 1, 1)
     except (np.linalg.LinAlgError, RuntimeError, ValueError) as err:
-        raise
         print('Error detected. Skipping this analysis.')
 
 

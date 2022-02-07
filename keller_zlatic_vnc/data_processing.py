@@ -1232,8 +1232,9 @@ def find_clean_events(annotations: pd.DataFrame, clean_def: str = 'dj') -> np.nd
 def find_before_and_after_events(events: pd.DataFrame, all_events: pd.DataFrame) -> pd.DataFrame:
     """ Finds events before and after a given set of events of interest.
 
-    A preceeding event is defined as the one the largest value when the start time of the event of interest is subtracted
-    from its end time, provided it does not end simultaneously with or after the event of interest
+    A preceeding event is defined as the one with the largest value (equivalently least negative) when the start time
+    of the event of interest is subtracted from its end time, provided it does not end simultaneously with or after
+    the event of interest
 
     A succeeding event is defined as the one with the smallest value when the end time of the event of interest is
     subtracted from the its start time, provided it does not start simultaneously with or before the event of interest.
