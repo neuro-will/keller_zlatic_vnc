@@ -78,6 +78,52 @@ BASIN_SEG_CODES = {1: 'T1 L+R',
                    12: 'A9 L+R'}
 
 
+def apply_cutoff_times(annots: pd.DataFrame, co_th: int):
+    """
+    Marks preceding and succeeding events as unknown or of a particular behavior.
+
+    A function to mark preceding or succeeding behaviors as either of a known type or unknown. To determine this
+    we look to see if the difference between the end of the first behavior and the start of the second
+    is less than or equal to co_th.  If so, we determine a real transition has occurred. If not, we determine
+    than a transition from/to an unknown state has occurred.
+
+    Args:
+
+        annots: A pandas data frame, as produced by get_basic_clean_annotations_from_full
+
+        co_th: The cut off threshold to apply.
+
+    Returns:
+
+        annots_out: A copy of the annots data frame, with appropriate preceding/succeeding behaviors marked as
+        unknown with a 'U'.
+    """
+
+    annots = copy.deepcopy(annots)
+
+    def __apply(cur_annots, type):
+
+        if type == 'preceding_behavior':
+            pre_event_str = 'beh_before_end'
+            succ_event_str = 'start'
+            update_beh_str = 'beh_before'
+        else:
+            pre_event_str = 'end'
+            succ_event_str = 'beh_after_start'
+            update_beh_str = 'beh_after'
+
+        delta = cur_annots[succ_event_str] - cur_annots[pre_event_str]
+        known_trans = delta <= co_th
+        cur_annots.loc[~known_trans, update_beh_str] = 'U'
+
+        return cur_annots
+
+    annots = __apply(annots, 'preceding_behavior')
+    annots = __apply(annots, 'succeeding_behavior')
+
+    return annots
+
+
 def apply_quiet_and_cutoff_times(annots: pd.DataFrame, quiet_th: int, co_th: int, q_length: int):
     """
     Marks preceding and succeeding events as unknown, quiet or of a particular behavior.

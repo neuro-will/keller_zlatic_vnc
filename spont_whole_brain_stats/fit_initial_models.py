@@ -48,20 +48,17 @@ base_ps['dataset_base_folder'] = r'K:\\SV4'
 # The defintion we use for clean events
 base_ps['clean_event_def'] = 'po'  # 'dj' or 'po'
 
-# Specify the threshold we use (in number of stacks) to determine when a quiet transition has occurred
+# Specify the threshold we use (in number of stacks) to determine when a quiet period has occured
 base_ps['q_th'] = 21
 
 # Specify the cut off threshold we use (in number of stacks) to determine when a real transition has occurred
 base_ps['co_th'] = 6 #[3,6]
 
-# Specify the number of frames to use for the duration of marked quiet events
-base_ps['q_length'] = 3
-
 # Specify the set of acceptable behaviors transitioned into for events we analyze
-base_ps['behs'] = ['ds', 'B', 'F', 'TL', 'TR', 'H']
+base_ps['acc_behs'] = ['ds', 'Q', 'B', 'F', 'TL', 'TR', 'H']
 
 # Specify the acceptable preceding behaviors for events we analyze
-base_ps['pre_behs'] = ['ds', 'Q', 'B', 'F', 'TL', 'TR', 'H']
+base_ps['acc_pre_behs'] = ['ds', 'Q', 'B', 'F', 'TL', 'TR', 'H']
 
 # True if we want to pool preceding left and right turns into one category (only applies if pool_preceeding_behaviors
 # is false)
@@ -70,11 +67,11 @@ base_ps['pool_preceeding_turns'] = False
 # True if we want to pool succeeding left and right turns into one category
 base_ps['pool_succeeding_turns'] = False
 
-# True if we should remove events that transition from a behavior to that same behavior
-base_ps['remove_st'] = False
-
-# The preceding behavior we use for the reference condition
+# The reference behavior we use for the preceding behavior
 base_ps['pre_ref_beh'] = 'Q'
+
+# The behavior we use for the behavior transitioned into
+base_ps['ref_beh'] = 'Q'
 
 # Data to calculate Delta F/F for in each dataset
 base_ps['f_ts_str'] = 'f_1_5_5'

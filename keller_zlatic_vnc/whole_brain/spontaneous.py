@@ -18,10 +18,11 @@ from janelia_core.stats.regression import linear_regression_ols_estimator
 from janelia_core.stats.regression import grouped_linear_regression_acm_stats
 from janelia_core.stats.regression import grouped_linear_regression_ols_estimator
 
-from keller_zlatic_vnc.data_processing import apply_quiet_and_cutoff_times
+from keller_zlatic_vnc.data_processing import apply_cutoff_times
 from keller_zlatic_vnc.data_processing import count_unique_subjs_per_transition
 from keller_zlatic_vnc.data_processing import count_transitions
 from keller_zlatic_vnc.data_processing import calc_dff
+from keller_zlatic_vnc.data_processing import find_quiet_periods
 from keller_zlatic_vnc.data_processing import generate_standard_id_for_full_annots
 from keller_zlatic_vnc.data_processing import generate_standard_id_for_volume
 from keller_zlatic_vnc.data_processing import get_basic_clean_annotations_from_full
@@ -76,20 +77,19 @@ def fit_init_models(ps: dict):
         annotation data as well as volume data will be analyzed.  (See the exclude_subjs argument for how to modify
         this).
 
-        2) Find "clean" spontaneous events for each subject.  See the function get_basic_clean_annotations_from_full
+        2) Find quiet periods between marked events for each subject.  See the function find_clean_events for more
+        detail.
+
+        3) Find "clean" spontaneous events for each subject.  See the function get_basic_clean_annotations_from_full
         for the options for defining clean events.
 
-        3) Apply a quiet and cut off time threshold to classify the preceding behavior for each event.  See
-        the function apply_quiet_and_cutoff_times for more information.
+        4) Apply a cut off time threshold to classify the preceding behavior for each event.  See
+        the function apply_cutoff_times for more information.
 
-        3) Filter events by the behavior that is transitioned into and from (if requested).  Importantly, this is
+        5) Filter events by the behavior that is transitioned into and from (if requested).  Importantly, this is
         done before any pooling of behaviors is done (see 4-6).
 
-        4) Optionally pool preceding and succeeding left and right turns into single turn behaviors.
-
-        5) Optionally remove any transitions to and from the same behavior.
-
-        6) Optionally group all preceding behaviors into a single (G)rouped label.
+        6) Optionally pool preceding and succeeding left and right turns into single turn behaviors.
 
         7) Calculate Delta F/F for all events in a specified window for each event for all supervoxels (see options
         below for specifying the placement of the window)
@@ -246,7 +246,7 @@ def fit_init_models(ps: dict):
         volume_subjs[m_ind] = 'CW_17-11-03-L6-2'
 
     # Produce final list of annotation subjects by intersecting the subjects we have annotations for with those we
-    # have volumes before and removing any exlude subjects.
+    # have volumes before and removing any exclude subjects.
     analyze_subjs = set(volume_subjs).intersection(set(annot_subjs))
     analyze_subjs = analyze_subjs - set(ps['exclude_subjs'])
     analyze_subjs = list(np.sort(np.asarray(list(analyze_subjs))))
@@ -268,6 +268,8 @@ def fit_init_models(ps: dict):
     annotations = []
     for s_id, d in subject_dict.items():
         tbl = read_full_annotations(d['annot_file'])
+        quiet_tbl = find_quiet_periods(annots=tbl, q_th=ps['q_th'])
+        tbl = pd.concat([tbl, quiet_tbl], ignore_index=True)
         tbl['subject_id'] = s_id
         annotations.append(tbl)
 
@@ -276,9 +278,8 @@ def fit_init_models(ps: dict):
 
     annotations = pd.concat(annotations, ignore_index=True)
 
-    # Apply the cut off time and quiet threshold
-    annotations = apply_quiet_and_cutoff_times(annots=annotations, quiet_th=ps['q_th'], co_th=ps['co_th'],
-                                               q_length=ps['q_length'])
+    # Apply the cut off time threshold
+    annotations = apply_cutoff_times(annots=annotations, co_th=ps['co_th'])
 
     # ==================================================================================================================
     # Filter events by the behavior transitioned into or from if we are suppose to
@@ -286,15 +287,18 @@ def fit_init_models(ps: dict):
     print('Preceeding Behaviors before filtering: ' + str(annotations['beh_before'].unique()))
     print('Behaviors transitioned into before filtering: ' + str(annotations['beh'].unique()))
 
-    if ps['behs'] is not None:
-        keep_inds = [i for i in annotations.index if annotations['beh'][i] in ps['behs']]
+    if ps['acc_behs'] is not None:
+        keep_inds = [i for i in annotations.index if annotations['beh'][i] in ps['acc_behs']]
         annotations = annotations.loc[keep_inds]
 
-    if ps['pre_behs'] is not None:
-        keep_inds = [i for i in annotations.index if annotations['beh_before'][i] in ps['pre_behs']]
+    if ps['acc_pre_behs'] is not None:
+        keep_inds = [i for i in annotations.index if annotations['beh_before'][i] in ps['acc_pre_behs']]
         annotations = annotations.loc[keep_inds]
 
     print('Number of annotations after filtering out unwanted behaviors: ' + str(annotations.shape[0]))
+    print('Preceeding Behaviors after filtering: ' + str(annotations['beh_before'].unique()))
+    print('Behaviors transitioned into after filtering: ' + str(annotations['beh'].unique()))
+
     # ==================================================================================================================
     # Pool preceeding turns if requested
     if ps['pool_preceeding_turns']:
@@ -306,12 +310,6 @@ def fit_init_models(ps: dict):
     if ps['pool_succeeding_turns']:
         turn_rows = (annotations['beh'] == 'TL') | (annotations['beh'] == 'TR')
         annotations.loc[turn_rows, 'beh'] = 'TC'
-
-    # ==================================================================================================================
-    # Remove self transitions if requested
-    if ps['remove_st']:
-        self_trans = annotations['beh_before'] == annotations['beh']
-        annotations = annotations.loc[~self_trans]
 
     # ==================================================================================================================
     # Now we read in the Delta F\F data for all subjects
@@ -331,10 +329,9 @@ def fit_init_models(ps: dict):
             dataset = ROIDataset.from_dict(pickle.load(f))
 
         # Calculate dff
-        f=dataset.ts_data[ps['f_ts_str']]['vls'][:]
-        b=dataset.ts_data[ps['bl_ts_str']]['vls'][:]
+        f = dataset.ts_data[ps['f_ts_str']]['vls'][:]
+        b = dataset.ts_data[ps['bl_ts_str']]['vls'][:]
         dff = calc_dff(f=f, b=b, background=ps['background'], ep=ps['ep'])
-        return_dff = dff
 
         # Get the dff for each event
         s_events = annotations[annotations['subject_id'] == s_id]
@@ -371,7 +368,7 @@ def fit_init_models(ps: dict):
     n_trans = count_transitions(annotations, before_str='beh_before', after_str='beh')
 
     # ==================================================================================================================
-    # Get list of transitions we observe in enough subjects to analyze
+    # Get list of transitions we both observe in enough subjects and have enough total instances of to analyze
     analyze_trans = [[(bb, ab) for ab in n_subjs_per_trans.loc[bb].index
                       if (n_subjs_per_trans[ab][bb] >= ps['min_n_subjs'] and n_trans[ab][bb] > ps['min_n_events'])]
                       for bb in n_subjs_per_trans.index]
@@ -389,11 +386,19 @@ def fit_init_models(ps: dict):
     analyzed_n_trans = count_transitions(annotations, before_str='beh_before', after_str='beh')
 
     # ==================================================================================================================
+    # Make sure our reference conditions are present
+    an_pre_behs = analyze_annotations['beh_before'].unique()
+    an_behs = analyze_annotations['beh'].unique()
+
+    if not ps['pre_ref_beh'] in an_pre_behs:
+        raise(RuntimeError('The behavior ' + ps['pre_ref_beh'] + ' is not in the analyzed preceding behaviors.'))
+    if not ps['ref_beh'] in an_behs:
+        raise(RuntimeError('The behavior ' + ps['ref_beh'] + ' is not in the analyzed behaviors.'))
+
+    # ==================================================================================================================
     # Generate our regressors and group indicator variables
+
     n_events = len(analyze_annotations)
-    n_analyze_trans = len(analyze_trans)
-    print('Number of analyzed events: ' + str(n_events))
-    print('Analyzed transitions: ' + ','.join([str(s) for s in analyze_trans]))
 
     unique_ids = analyze_annotations['subject_id'].unique()
     g = np.zeros(n_events)
@@ -442,7 +447,7 @@ def fit_init_models(ps: dict):
             pickle.dump(rs, f)
 
     # Provide output
-    return rs, analyze_annotations, return_dff
+    return rs, analyze_annotations
 
 
 def parallel_test_for_diff_than_mean_vls(ps: dict):
