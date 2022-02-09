@@ -1311,6 +1311,61 @@ def find_before_and_after_events(events: pd.DataFrame, all_events: pd.DataFrame)
     return before_after_events
 
 
+def find_quiet_periods(annots: pd.DataFrame, q_th: float):
+    """ Finds quiet periods between marked events.
+
+    We look for quiet periods.  A quiet period is defined simply as:
+
+        1) Any period between existing events that is greater than a specified duration
+
+    Note that with this definition, we do not search for quiet periods before the start of the first marked
+    event or after the end of the last marked event.
+
+    Args:
+
+        annots: The annotations to search through
+
+        q_th: The minimum length, in number of time steps, that a period between two events must be in order
+        to be considered a quiet event.
+
+    Returns:
+
+        quiet_tbl: A table of marked quiet events, with the columns 'start', 'end' and 'beh'
+
+    """
+
+    if q_th < 1:
+        raise (ValueError('q_th must be greater than or equal to 1'))
+
+    # Determine the end of the first event and the start of the last - we only look for quiet periods between these
+    # two times
+    first_end = annots['end'].min()
+    last_start = annots['start'].max()
+
+    all_starts = annots['start'].to_numpy()
+    all_ends = annots['end'].to_numpy()
+
+    # Look for quiet periods
+    quiet_starts = []
+    quiet_ends = []
+    for end in all_ends:
+        if end > first_end and end < last_start:
+
+            # Find events which end after this one
+            search_events = all_ends > end
+            search_starts = all_starts[search_events]
+
+            # Now that we know which events we are looking at, find the event that starts nearest to the end
+            # of this one
+            smallest_delta = np.min(search_starts - end) - 1
+            if smallest_delta >= q_th:
+                quiet_starts.append(end + 1)
+                quiet_ends.append(end + smallest_delta)
+
+    # Return table of quiet annotations
+    return pd.DataFrame({'start': quiet_starts, 'end': quiet_ends, 'beh': ['Q'] * len(quiet_starts)})
+
+
 def find_usable_partial_overlap_events(ints: np.ndarray):
     """
     Finds events that are appropriate to use when we allow partial overlap.
@@ -1390,7 +1445,7 @@ def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: 
 
     This function will:
         1) Remove any events which do not have a marked behavior
-        2) Remove any events which are too long
+        2) Remove any events which are too long (assuming they are not quiet periods)
         3) Remove any events with a start before the end
         4) Search for "clean" events - see function find_clean_events
         5) Find the events before and after each clean event, adding this information to the
@@ -1420,10 +1475,10 @@ def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: 
     # Get rid of any events without a know behavior type
     full_annots.dropna(inplace=True)
 
-    # Get rid of any events which are too long
+    # Get rid of any events which are too long (and not quiet)
     event_durs = full_annots['start'] - full_annots['end'] + 1 # +1 for inclusive indexing
-    not_long_events = event_durs <= max_event_length
-    full_annots = full_annots[not_long_events]
+    long_events = (event_durs > max_event_length) & (full_annots['beh'] != 'Q')
+    full_annots = full_annots[~long_events]
 
     # Get rid of any events with a start before the end
     correct_order_events = full_annots['start'] <= full_annots['end']
