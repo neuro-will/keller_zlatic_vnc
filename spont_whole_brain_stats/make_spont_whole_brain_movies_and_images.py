@@ -18,11 +18,11 @@ import numpy as np
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_brain_videos_and_max_projs
 
 # Specify folder results are saved in
-results_folder = r'A:\projects\keller_vnc\results\single_subject\testing_sweep'
+results_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\all_supervoxels'
 
 # Switch for setting additional parameters below based on if we are making images for the initial stats or after
 # comparing each coefficent to the mean of the others in its group
-stat_types = 'mean_cmp' # 'initial' or 'mean_cmp'
+stat_types = 'initial' # 'initial' or 'mean_cmp'
 
 multi_cmp_type = 'by' #'none', 'bon' or 'by'
 
@@ -49,8 +49,6 @@ if multi_cmp_type == 'bon':
 elif multi_cmp_type == 'by':
     p_vl_str += '_corrected_by'
 
-print(p_vl_str)
-
 # Lower percentage of p-values that brightness saturates at - should be between 0 and 100
 min_p_vl_perc = .0001
 
@@ -58,7 +56,7 @@ min_p_vl_perc = .0001
 # they are all for the same rois
 roi_group = 'rois_1_5_5'
 
-ex_dataset_file = r'K:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\dataset.pkl'
+ex_dataset_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\dataset.pkl'
 
 # Find results to generate images and maps for
 results_files = glob.glob(str(Path(results_folder) / '*.pkl'))
@@ -74,10 +72,14 @@ for f in results_files:
     # Determine where we will save the results
     save_folder_path = Path(f).parent / (Path(f).stem + '_images')
 
-
     # Load the results
     with open(f, 'rb') as f:
         rs = pickle.load(f)
+
+    # Save the number of transitions
+    os.makedirs(save_folder_path)
+    rs['n_trans'].to_csv(save_folder_path / 'n_trans.csv')
+    rs['n_subjs_per_trans'].to_csv(save_folder_path / 'n_subjs_per_trans.csv')
 
     # Put the results in the format expected for the plotting function
     n_rois = len(rs['full_stats'])
@@ -103,7 +105,7 @@ for f in results_files:
                                           gen_filtered_coef_tiffs=False,
                                           gen_combined_movies=False,
                                           gen_combined_tiffs=True,
-                                          gen_combined_projs=True,
+                                          gen_combined_projs=False,
                                           gen_uber_movies=True,
                                           min_p_val_perc=min_p_vl_perc,
                                           max_p_vl=.05,

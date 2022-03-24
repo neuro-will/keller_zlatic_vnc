@@ -13,7 +13,8 @@ import pandas as pd
 
 
 def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, enc_subjects: bool = False,
-                       enc_beh_interactions: bool = False, beh_interactions: list = None):
+                       enc_beh_interactions: bool = False, beh_interactions: list = None,
+                       beh_before_str: str = 'beh_before', beh_after_str: str = 'beh_after'):
     """ Generates one-hot representation of data in tables produced by data_processing.produce_table_of_extracted data.
 
     Args:
@@ -30,6 +31,9 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
 
         beh_interactions: A list of specific interaction terms of the form [('Q', 'F'), ...] to encode.  If provided,
         enc_beh_interactions must be false.
+
+        beh_before_str: The column name in table that before behaviors are stored under
+        beh_after_str: The column name in table that after behaviors are stored under
 
     Returns:
 
@@ -58,8 +62,8 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
         n_before_beh = len(beh_before)
         beh_before_enc = np.zeros([n_smps, n_before_beh])
         for b_i in range(n_before_beh):
-            beh_before_enc[:, b_i][table['beh_before'] == beh_before[b_i]] = True
-            var_strs.append('beh_before_' + beh_before[b_i])
+            beh_before_enc[:, b_i][table[beh_before_str] == beh_before[b_i]] = True
+            var_strs.append(beh_before_str + '_' + beh_before[b_i])
         encoding = np.concatenate([encoding, beh_before_enc], axis=1)
 
     # Process after behaviors
@@ -67,8 +71,8 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
         n_after_beh = len(beh_after)
         beh_after_enc = np.zeros([n_smps, n_after_beh])
         for b_i in range(n_after_beh):
-            beh_after_enc[:, b_i][table['beh_after'] == beh_after[b_i]] = True
-            var_strs.append('beh_after_' + beh_after[b_i])
+            beh_after_enc[:, b_i][table[beh_after_str] == beh_after[b_i]] = True
+            var_strs.append(beh_after_str + '_' + beh_after[b_i])
         encoding = np.concatenate([encoding, beh_after_enc], axis=1)
 
     # Process all interaction terms if we are suppose to
@@ -81,14 +85,13 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
         i_col = 0
         for bb_i in range(n_before_beh):
             before_enc = np.zeros(n_smps)
-            before_enc[table['beh_before'] == beh_before[bb_i]] = True
+            before_enc[table[beh_before_str] == beh_before[bb_i]] = True
 
             for ba_i in range(n_after_beh):
                 after_enc = np.zeros(n_smps)
-                after_enc[table['beh_after'] == beh_after[ba_i]] = True
+                after_enc[table[beh_after_str] == beh_after[ba_i]] = True
                 beh_i_encoding[:, i_col] = before_enc*after_enc
                 var_strs.append('beh_interact_' + beh_before[bb_i] + beh_after[ba_i])
-
                 i_col+= 1
 
         encoding = np.concatenate([encoding, beh_i_encoding], axis=1)
@@ -101,8 +104,8 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
             before_enc = np.zeros(n_smps)
             after_enc = np.zeros(n_smps)
 
-            before_enc[table['beh_before'] == beh_interactions[bb_i][0]] = True
-            after_enc[table['beh_after'] == beh_interactions[bb_i][1]] = True
+            before_enc[table[beh_before_str] == beh_interactions[bb_i][0]] = True
+            after_enc[table[beh_after_str] == beh_interactions[bb_i][1]] = True
 
             beh_i_encoding[:, bb_i] = before_enc*after_enc
             var_strs.append('beh_interact_' + beh_interactions[bb_i][0] + beh_interactions[bb_i][1])
@@ -122,6 +125,7 @@ def one_hot_from_table(table: pd.DataFrame, beh_before: list, beh_after: list, e
     return [encoding, var_strs]
 
 
+# TODO: Remove this function, as it is no longer needed
 def spont_beh_one_hot_encoding(tbl: pd.DataFrame, prev_str: str = None, suc_str: str = None, prev_ref: str = 'Q'):
     """ Produces one-hot encoding of previous behaviors and behaviors transitioned into.
 

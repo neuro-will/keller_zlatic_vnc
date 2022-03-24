@@ -43,7 +43,7 @@ base_ps['exclude_subjs'] = set(['CW_17-11-06-L2'])
 base_ps['dataset_folder'] = 'extracted'
 
 # Base folder where datasets are stored
-base_ps['dataset_base_folder'] = r'K:\\SV4'
+base_ps['dataset_base_folder'] = r'W:\\SV4'
 
 # The defintion we use for clean events
 base_ps['clean_event_def'] = 'po'  # 'dj' or 'po'
@@ -51,8 +51,16 @@ base_ps['clean_event_def'] = 'po'  # 'dj' or 'po'
 # Specify the threshold we use (in number of stacks) to determine when a quiet period has occured
 base_ps['q_th'] = 21
 
+# Specify the offset (in number of stacks) to determine the marked start of a quiet period relative to the end of
+# a preceeding behavior; must be >= 1
+base_ps['q_start_offset'] = [1, 3]
+
+# Specify the offset (in number of stacks) to determine the marked end of a quiet period relative to the start of
+# a succeeding behavior; must be >= 1
+base_ps['q_end_offset'] = 1
+
 # Specify the cut off threshold we use (in number of stacks) to determine when a real transition has occurred
-base_ps['co_th'] = 6 #[3,6]
+base_ps['co_th'] = [3, 6]
 
 # Specify the set of acceptable behaviors transitioned into for events we analyze
 base_ps['acc_behs'] = ['ds', 'Q', 'B', 'F', 'TL', 'TR', 'H']
@@ -85,7 +93,7 @@ base_ps['ep'] = 20
 base_ps['min_n_subjs'] = 1
 
 # Min number of events we must observe a transition in for us to analyze it
-base_ps['min_n_events'] = 1
+base_ps['min_n_events'] = 3
 
 # Alpha value for thresholding p-values when calculating stats - this is not used in producing the final maps
 base_ps['alpha'] = .05
@@ -94,18 +102,18 @@ base_ps['alpha'] = .05
 base_ps['window_type'] = 'start_locked'  # 'whole_event' or 'start_locked'
 
 # If we are using a window locked to event start or stop, we give the relative offset and window length here
-base_ps['window_offset'] = [-9, -6, -3, 0, 3]
-base_ps['window_length'] = 3
+base_ps['window_offset'] = [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+base_ps['window_length'] = [1, 3]
 
 # Specify if we only consider events where the extracted dff window is entirely contained within the event
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\testing_sweep'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\all_supervoxels'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
-base_ps['save_str'] = 'testing'
+base_ps['save_str'] = 'all_supervoxels'
 
 # ======================================================================================================================
 # Generate dictionaries for all combinations of parameters

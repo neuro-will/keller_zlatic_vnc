@@ -880,7 +880,8 @@ def test_for_different_than_avg_beta(beta: np.ndarray, acm: np.ndarray, n_grps: 
     return p_vls, detected
 
 
-def test_for_diff_than_mean_vls(stats: dict, var_names: Sequence[Tuple[str]], mn_th:float = 1e-10) -> dict:
+def test_for_diff_than_mean_vls(stats: dict, var_names: Sequence[Tuple[str]], mn_th:float = 1e-10,
+                                beh_groups: list = None) -> dict:
     """ This is a helper function which calculates post-hoc statistics for each group.
 
     A group are all behaviors either before a behavior (indicated by variable names of the form before_*) or
@@ -914,6 +915,8 @@ def test_for_diff_than_mean_vls(stats: dict, var_names: Sequence[Tuple[str]], mn
         mn_th: The threshold to apply when determining if coefficients for different behaviors are different enough
         to justify performing further statistics (see note above)
 
+        beh_groups: Strings prepended to variable names, denoting groups.  If None, ['before', 'after'] will be used.
+
     Returns:
 
         new_stats: Dictionary with the keys:
@@ -934,7 +937,10 @@ def test_for_diff_than_mean_vls(stats: dict, var_names: Sequence[Tuple[str]], mn
     beta[:] = np.nan
     computed = np.zeros(n_coefs)
 
-    # Do a quick check to see that mean values for each behavior were different enough to even warrnat doing
+    if beh_groups is None:
+        beh_groups = ['before', 'after']
+
+    # Do a quick check to see that mean values for each behavior were different enough to even warrant doing
     # stats.  If values were too close, we are going to run into floating points issues, and if the differences
     # were that small anyway, we lose nothing by not checking for differences
     mn_diffs = np.abs(stats['beta'] - np.mean(stats['beta']))
@@ -946,11 +952,11 @@ def test_for_diff_than_mean_vls(stats: dict, var_names: Sequence[Tuple[str]], mn
         return new_stats
 
     # Process results for each group
-    for grp_b in ['before', 'after']:
-        keep_cols = np.asarray(np.argwhere([1 if b[0:len(grp_b)] == grp_b else 0 for b in var_names])).squeeze()
+    for grp_b in beh_groups:
+        keep_cols = np.asarray(np.argwhere([1 if b[0:b.rfind('_')] == grp_b else 0 for b in var_names])).squeeze()
 
         # Initially set all p-values to 1 - that way if we don't end up computing them for this group, they are
-        # already set to the write variable (see comments below about why we might not compute p-values)
+        # already set to the right value (see comments below about why we might not compute p-values)
         p_vls[keep_cols] = 1
 
         if keep_cols.ndim > 0:  # Means we have more than one coefficient

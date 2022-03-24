@@ -26,7 +26,7 @@ def generate_rois_from_segments(seg_image: np.ndarray) -> List[ROI]:
         seg_image: A 3-d volume with labeled segments.  0 indicates background. Integer values correspond to segments.
 
     Returns:
-        rois: A list of roi objects represting all segments in the object.
+        rois: A list of roi objects representing all segments in the object.
     """
 
     # The id denoting background
@@ -202,7 +202,9 @@ def video_to_roi_baselines(base_data_dir: pathlib.Path, save_dir: pathlib.Path, 
 
 def _form_roi(seg_image, seg_id):
     vls = np.argwhere(seg_image == seg_id)
-    return ROI(voxel_inds=tuple(vls[:, c] for c in range(3)), weights=np.ones(vls.shape[0]))
+    roi = ROI(voxel_inds=tuple(vls[:, c] for c in range(3)), weights=np.ones(vls.shape[0]))
+    roi.seg_id = seg_id
+    return roi
 
 
 

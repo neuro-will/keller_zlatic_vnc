@@ -27,7 +27,7 @@ from keller_zlatic_vnc.data_processing import generate_standard_id_for_full_anno
 from keller_zlatic_vnc.data_processing import generate_standard_id_for_volume
 from keller_zlatic_vnc.data_processing import get_basic_clean_annotations_from_full
 from keller_zlatic_vnc.data_processing import read_full_annotations
-from keller_zlatic_vnc.linear_modeling import spont_beh_one_hot_encoding
+from keller_zlatic_vnc.linear_modeling import one_hot_from_table
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import test_for_diff_than_mean_vls
 
 
@@ -77,7 +77,7 @@ def fit_init_models(ps: dict):
         annotation data as well as volume data will be analyzed.  (See the exclude_subjs argument for how to modify
         this).
 
-        2) Find quiet periods between marked events for each subject.  See the function find_clean_events for more
+        2) Find quiet periods between marked events for each subject.  See the function find_quiet_periods for more
         detail.
 
         3) Find "clean" spontaneous events for each subject.  See the function get_basic_clean_annotations_from_full
@@ -268,7 +268,8 @@ def fit_init_models(ps: dict):
     annotations = []
     for s_id, d in subject_dict.items():
         tbl = read_full_annotations(d['annot_file'])
-        quiet_tbl = find_quiet_periods(annots=tbl, q_th=ps['q_th'])
+        quiet_tbl = find_quiet_periods(annots=tbl, q_th=ps['q_th'], q_start_offset=ps['q_start_offset'],
+                                       q_end_offset=ps['q_end_offset'])
         tbl = pd.concat([tbl, quiet_tbl], ignore_index=True)
         tbl['subject_id'] = s_id
         annotations.append(tbl)
@@ -397,18 +398,21 @@ def fit_init_models(ps: dict):
 
     # ==================================================================================================================
     # Generate our regressors and group indicator variables
+    encode_pre_behs = list(set(an_pre_behs) - set(ps['pre_ref_beh']))
+    encode_behs = list(set(an_behs) - set(ps['ref_beh']))
+    x, mdl_vars = one_hot_from_table(table=analyze_annotations, beh_before=encode_pre_behs, beh_after=encode_behs,
+                                     beh_before_str='beh_before', beh_after_str='beh')
+
+    x = np.concatenate([x, np.ones([x.shape[0], 1])], axis=1)
+    mdl_vars = mdl_vars + ['ref_' + ps['pre_ref_beh'] + '_' + ps['ref_beh']]
 
     n_events = len(analyze_annotations)
-
     unique_ids = analyze_annotations['subject_id'].unique()
     g = np.zeros(n_events)
     for u_i, u_id in enumerate(unique_ids):
         g[analyze_annotations['subject_id'] == u_id] = u_i
 
-    x, mdl_vars = spont_beh_one_hot_encoding(tbl=analyze_annotations, prev_str='beh_before',
-                                             suc_str='beh', prev_ref=ps['pre_ref_beh'])
-
-    # ==================================================================================================================
+   # ==================================================================================================================
     # Now actually calculate our statistics
     dff = np.stack(analyze_annotations['dff'].to_numpy())
 
@@ -491,14 +495,14 @@ def parallel_test_for_diff_than_mean_vls(ps: dict):
             basic_rs = pickle.load(f)
 
         # Perform stats
-        var_names = basic_rs['var_names']
-
         print('Done loading results from: ' + str(ps['basic_rs_file']))
+        var_names = basic_rs['var_names']
 
         n_cpu = mp.cpu_count()
         with mp.Pool(n_cpu) as pool:
             all_mean_stats = pool.starmap(test_for_diff_than_mean_vls,
-                                          [(s, var_names) for s in basic_rs['full_stats']])
+                                          [(s, var_names, 1e-10, ['beh_before', 'beh']) for s in basic_rs['full_stats']])
+
 
         # Here we do multiple comparisons corrections
         p_vls = np.stack([s['eq_mean_p'] for s in all_mean_stats])

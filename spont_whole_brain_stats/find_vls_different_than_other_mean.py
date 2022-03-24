@@ -19,7 +19,7 @@ from keller_zlatic_vnc.whole_brain.spontaneous import parallel_test_for_diff_tha
 base_ps = dict()
 
 # Provide a folder for which we should search for results to post process
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\testing_sweep'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\all_supervoxels'
 
 # ======================================================================================================================
 # Code starts here

@@ -1357,15 +1357,20 @@ def find_before_and_after_events(events: pd.DataFrame, all_events: pd.DataFrame)
     return before_after_events
 
 
-def find_quiet_periods(annots: pd.DataFrame, q_th: float):
+def find_quiet_periods(annots: pd.DataFrame, q_th: float, q_start_offset: int, q_end_offset: int):
     """ Finds quiet periods between marked events.
 
     We look for quiet periods.  A quiet period is defined simply as:
 
-        1) Any period between existing events that is greater than a specified duration
+        1) Any period between existing events that is greater than  or equal to a specified duration (q_th)
 
     Note that with this definition, we do not search for quiet periods before the start of the first marked
     event or after the end of the last marked event.
+
+    Note, we will mark the start and stop of a quiet event as follows:
+
+        start: Will be q_start_offset time points after the end of the preceeding event
+        stop: Will be q_end_offset time points before the start of the succeeding event
 
     Args:
 
@@ -1373,6 +1378,14 @@ def find_quiet_periods(annots: pd.DataFrame, q_th: float):
 
         q_th: The minimum length, in number of time steps, that a period between two events must be in order
         to be considered a quiet event.
+
+        q_start_offset: The offset, in number of time steps, from the end of the preceeding event to the start
+        of the marked quiet event.  An offset of 1 corresponds to the quiet period starting immediately after
+        the preceeding event.
+
+        q_end_offset: The offset, in number of time steps, from the end of the marked quiet event to the start
+        of the succeeding event. An offset of 1 corresponds to the quiet period ending immediately before the
+        succeeding event.  The marked start and end indices are inclusive.
 
     Returns:
 
@@ -1382,6 +1395,15 @@ def find_quiet_periods(annots: pd.DataFrame, q_th: float):
 
     if q_th < 1:
         raise (ValueError('q_th must be greater than or equal to 1'))
+
+    if q_start_offset < 1:
+        raise(ValueError('q_start_offset must be greater than or equal to 1'))
+
+    if q_end_offset < 1:
+        raise(ValueError('q_end_offset must be greater than or equal to 1'))
+
+    if q_start_offset > (q_th - q_end_offset + 1):
+        raise(ValueError('q_start_offset cannot be greater than q_th - q_end_offset + 1'))
 
     # Determine the end of the first event and the start of the last - we only look for quiet periods between these
     # two times
@@ -1405,8 +1427,8 @@ def find_quiet_periods(annots: pd.DataFrame, q_th: float):
             # of this one
             smallest_delta = np.min(search_starts - end) - 1
             if smallest_delta >= q_th:
-                quiet_starts.append(end + 1)
-                quiet_ends.append(end + smallest_delta)
+                quiet_starts.append(end + q_start_offset)
+                quiet_ends.append(end + smallest_delta - q_end_offset + 1)
 
     # Return table of quiet annotations
     return pd.DataFrame({'start': quiet_starts, 'end': quiet_ends, 'beh': ['Q'] * len(quiet_starts)})
@@ -1495,7 +1517,7 @@ def get_basic_clean_annotations_from_full(full_annots: pd.DataFrame, clean_def: 
         3) Remove any events with a start before the end
         4) Search for "clean" events - see function find_clean_events
         5) Find the events before and after each clean event, adding this information to the
-        DataFrame - see the function find_before_and_after_events
+           DataFrame - see the function find_before_and_after_events
         6) Remove any events which do not have a known before or after event
         7) Remove any stimulus events or those which are preceeded or succeeded by a stimulus event
 
