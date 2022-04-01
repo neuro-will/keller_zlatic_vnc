@@ -48,7 +48,7 @@ base_ps['dataset_base_folder'] = r'W:\\SV4'
 # The defintion we use for clean events
 base_ps['clean_event_def'] = 'po'  # 'dj' or 'po'
 
-# Specify the threshold we use (in number of stacks) to determine when a quiet period has occured
+# Specify the threshold we use (in number of stacks) to determine when a quiet period has occurred
 base_ps['q_th'] = 21
 
 # Specify the offset (in number of stacks) to determine the marked start of a quiet period relative to the end of

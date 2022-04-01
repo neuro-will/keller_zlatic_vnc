@@ -503,7 +503,6 @@ def parallel_test_for_diff_than_mean_vls(ps: dict):
             all_mean_stats = pool.starmap(test_for_diff_than_mean_vls,
                                           [(s, var_names, 1e-10, ['beh_before', 'beh']) for s in basic_rs['full_stats']])
 
-
         # Here we do multiple comparisons corrections
         p_vls = np.stack([s['eq_mean_p'] for s in all_mean_stats])
         computed_p_vls = np.stack([s['computed'] for s in all_mean_stats]).astype('bool')
@@ -514,7 +513,8 @@ def parallel_test_for_diff_than_mean_vls(ps: dict):
             s['eq_mean_p_corrected_bon'] = corrected_p_vls_bon[s_i, :]
 
         # Now save our results
-        rs = {'ps': ps, 'full_stats': all_mean_stats, 'var_names': var_names}
+        rs = {'ps': ps, 'full_stats': all_mean_stats, 'var_names': var_names, 'n_trans': basic_rs['n_trans'],
+              'n_subjs_per_trans': basic_rs['n_subjs_per_trans']}
 
         with open(save_path, 'wb') as f:
             pickle.dump(rs, f)

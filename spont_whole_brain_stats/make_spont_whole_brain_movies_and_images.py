@@ -22,7 +22,7 @@ results_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\
 
 # Switch for setting additional parameters below based on if we are making images for the initial stats or after
 # comparing each coefficent to the mean of the others in its group
-stat_types = 'initial' # 'initial' or 'mean_cmp'
+stat_types = 'mean_cmp' # 'initial' or 'mean_cmp'
 
 multi_cmp_type = 'by' #'none', 'bon' or 'by'
 

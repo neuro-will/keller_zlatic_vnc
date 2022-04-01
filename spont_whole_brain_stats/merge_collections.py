@@ -1,12 +1,14 @@
 """ A script for merging collections into one.
 
-This script currently expects that the
-        1) Original model fits
-        2) Post-processed (mean comparisons) results
-        3) Folders with images (which are the individual collections)
+This script should be run after 'generate_collections.py'
 
-will all be in the same folder.  The logic of this basic script looks for all the original model fit results
-and forms paths to (3) based on this.
+The logic for this script is simple.  The user supplies a base folder where individual collections have already
+been created.  This script assumes that in this same base folder .pkl files exist with the fit results (for
+both the original model fits as well as mean comparison results) that each collection is based off of.  It will
+then look for a folder with images (which in fact now are collections because we assume generate_collections has
+already been run) for each .pkl file and merge the collections for all results into one large collection.
+
+The user can specify a new save location where the merged collection should be stored.
 
 """
 
@@ -17,17 +19,20 @@ import re
 from keller_zlatic_vnc.collections import merge_collections
 
 # Folder containing the original results and individual collections
-rs_folder = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject\ind_trans_window_sweep\ind_collections'
+rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\all_supervoxels'
 
 # Folder where we should save the merged collection into
-tgt_folder = r'\\dm11\bishoplab\projects\keller_vnc\results\single_subject\ind_trans_window_sweep\ind_trans_window_sweep'
+tgt_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\all_supervoxels\all_supervoxels_orig_fits'
 
 # A new description for the merged collection.
-new_description = ('In this analysis we look at results for the single EM specimen, analyzing spontaneous behavior ' +
-               'for specific transitions. '  +
-               'The key scripts to run the statistical tests used to produce these maps are fit_init_models.py ' +
-               ' and find_vls_different_than_other_mean.py. The script ' +
-               'make_spont_whole_brain_movies_and_images.py was then used to render the actual maps.')
+new_description = ('Results for updated models, which look at how neural encoding depends on behavior both before and ' +
+                   'after stimulus.  The maps contained here are for the smallest cube-shaped voxels we work with and ' +
+                   'they visualize the original models fits - that is the maps can be understood as showing the ' +
+                   'behavior vs quiet comparison.  The key scripts to run the statistical tests used to produce these ' +
+                   'maps are fit_init_models.py and find_vls_different_than_other_mean.py. The script ' +
+                   'make_spont_whole_brain_movies_and_images.py was then used to render the actual maps.')
+
+# Specify the type of maps the collections we are merging were made for
 
 # ======================================================================================================================
 # Code goes here
@@ -35,9 +40,8 @@ new_description = ('In this analysis we look at results for the single EM specim
 
 # Find all results
 rs_files = glob.glob(str(Path(rs_folder) / '*.pkl'))
-rs_files = [f for f in rs_files if re.match('.*mean_cmp_stats.pkl', f) is None]
 
-collections = [Path(f).parents[0] / (Path(f).stem + '_mean_cmp_stats_images') for f in rs_files]
+collections = [Path(f).parents[0] / (Path(f).stem + '_images') for f in rs_files]
 
 merge_collections(collections, tgt_folder, new_desc=new_description, ignore_extensions=['.png'])
 

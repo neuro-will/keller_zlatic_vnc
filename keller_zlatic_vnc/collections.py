@@ -44,7 +44,7 @@ def form_collection(image_folder: PathOrStr, tgt_folder: PathOrStr,
 
         3) A 'parameters' folder containing saved .pkl files with the original parameter dictionaries used in
         the pipeline to produce the results.  These can be inspected for debugging purposes as well as to find
-        the value of parmeters not listed in the metadata.yaml file.
+        the value of parameters not listed in the metadata.yaml file.
 
     Args:
 
