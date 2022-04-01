@@ -52,23 +52,20 @@ base_ps['a9_annot_folder'] = r'/Volumes/bishoplab/projects/keller_vnc/data/full_
 base_ps['chen_file'] = r'/Volumes/bishoplab/projects/keller_vnc/data/extracted_dff_v2/transition_list_CW_11202021.xlsx'
 
 # Specify the type of neurons we analyze
-base_ps['cell_type'] = ['a00c']  # 'a00c' 'handle', 'basin'
+base_ps['cell_type'] = ['basin']  # 'a00c' 'handle', 'basin'
 
 # Specfy the cell ids we analyze as a list. If None, we analyze all cell ids
 
-# Debug only
-if True:
-    base_ps['cell_ids'] = None
 
 # a00c
-if False:
+if base_ps['cell_type'][0] == 'a00c':
     base_ps['cell_ids'] = [None,
                            ['ds', 'antL', 'antR'],
                            ['ds', 'midL', 'midR'],
                            ['ds', 'postL', 'postR']]
 
 # basin
-if False:
+if base_ps['cell_type'][0] == 'basin':
     base_ps['cell_ids'] = [None,
                            ['ds', 'A1R', 'A1L', '1AL', '1AR'],
                            ['ds', 'A2L', 'A2R', '2AL', '2AR'],
@@ -84,7 +81,7 @@ if False:
                            ['ds', 'T3L', 'T3R', '3TL', '3TR']]
 
 # handle
-if False:
+if base_ps['cell_type'][0] == 'handle':
     base_ps['cell_ids'] = [None,
                            ['ds', 'A1'],
                            ['ds', 'A2'],
@@ -101,24 +98,23 @@ if False:
                            ['ds', 'SEG']]
 
 # Specify the manipulation target for subjects we want to analyze, None indicates both A4 and A9
-base_ps['man_tgt'] = None #[None, 'A4', 'A9']
+base_ps['man_tgt'] = [None, 'A4', 'A9']
 
 # Say if we should pool preceeding and succeeding turns
-base_ps['pool_turns'] = True #[True, False]
+base_ps['pool_turns'] = [True, False]
 
 # Parameters for declaring preceeding and succeeding quiet behaviors
 base_ps['pre_q_th'] = 50
 base_ps['succ_q_th'] = 9
 
 # Parameters for determing the location of the marked preceeding and succeeding quiet events
-#base_ps['pre_q_offset'] = -4 # Offset in time points from start of stimulus
 base_ps['pre_q_event_l'] = 3 # Event length for the preceeding quiet event
 base_ps['succ_q_event_l'] = 3 # Event length for the succeeding quiet event
 
 # Specify which behaviors we are willing to include in the analysis - b/c we have to see each behavior in
 # enough subjects (see below) all of these behaviors may not be included in an analysis, but this gives the
 # list of what we are least willing to consider.  If None, all behaviors will be considered
-base_ps['behs'] = ['ds', 'Q', 'TC', 'B', 'F', 'H']
+base_ps['behs'] = ['ds', 'Q', 'TC', 'TL', 'TR',  'B', 'F', 'H']
 
 # Specify the reference behavior
 base_ps['ref_beh'] = 'Q'
@@ -144,11 +140,11 @@ base_ps['dff_calc_params']['background'] = 100
 base_ps['dff_calc_params']['ep'] = 20
 
 # The test type we want to peform
-base_ps['test_type'] = 'after_reporting' #['prediction_dependence',
-                        #'decision_dependence',
-                        #'state_dependence',
-                        #'after_reporting',
-                        #'before_reporting']
+base_ps['test_type'] = ['prediction_dependence',
+                        'decision_dependence',
+                        'state_dependence',
+                        'after_reporting',
+                        'before_reporting']
 
 # The significance level we reject individual null hypotheses at at
 base_ps['ind_alpha'] = .05
@@ -157,17 +153,13 @@ base_ps['ind_alpha'] = .05
 base_ps['mc_alpha'] = .05
 
 # The folder where we should save results
-save_loc = '/Users/bishopw/Desktop/debug' #'/Volumes/bishoplab/projects/keller_vnc/results/single_cell/publication_results_v2/basin'
+save_loc = '/Volumes/bishoplab/projects/keller_vnc/results/single_cell/publication_results/basin'
 save_pdf_name = 'all_tests.pdf'
 
 # ======================================================================================================================
 # Do some basic checks here
 # ======================================================================================================================
 
-#if -base_ps['pre_q_offset'] >= (base_ps['pre_q_th'] + 1):  # +1 because of > in applying threshold
-#    raise (RuntimeError('-pre_q_offset must be one less than pre_q_th + 1'))
-#if -base_ps['pre_q_offset'] < base_ps['pre_q_event_l']:
-#    raise (RuntimeError('-pre_q_offset must be greater than or equal to pre_q_event_l'))
 if base_ps['succ_q_event_l'] > np.floor(base_ps['succ_q_th'] / 2):
     raise (RuntimeError('succ_q_event_l must be less than floor(succ_q_th)/2)'))
 if base_ps['pre_q_event_l'] > np.floor(base_ps['pre_q_th'] / 2):
@@ -361,7 +353,6 @@ for ps_i, ps in enumerate(ps_combs):
     subj_events_cp.loc[after_quiet_inds, 'beh_after'] = 'Q'
 
     # Mark the start and stop of the marked quiet events
-    #new_before_start = subj_events_cp[before_quiet_inds]['start'] + ps['pre_q_offset']
     new_before_start = (np.ceil((subj_events_cp[before_quiet_inds]['start'] -
                                 subj_events_cp[before_quiet_inds]['beh_before_end']) / 2) +
                        subj_events_cp[before_quiet_inds]['beh_before_end'])
