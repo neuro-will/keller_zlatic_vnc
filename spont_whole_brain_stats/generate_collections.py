@@ -64,7 +64,7 @@ description = ('Results for updated models, which look at how neural encoding de
 
 # List hashes identify commits in git for the different pieces of code used to produce these results
 git_hashes = {'janelia_core': 'ac16ae27170fb304d65d8ab72cf583efc51a3513',
-             'keller_zlatic_vnc': 'eec7c53e07ee6593cf9c6bfb226edae9069fa140'}
+              'keller_zlatic_vnc': 'eec7c53e07ee6593cf9c6bfb226edae9069fa140'}
 
 # List the parameters that should be included in the metadata file, with comments that should also be included
 f_extraction_yaml_fields = {'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}

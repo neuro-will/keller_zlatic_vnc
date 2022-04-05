@@ -22,7 +22,7 @@ from keller_zlatic_vnc.collections import merge_collections
 rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\all_supervoxels'
 
 # Folder where we should save the merged collection into
-tgt_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\all_supervoxels\all_supervoxels_orig_fits'
+tgt_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\all_supervoxels\all_supervoxels'
 
 # A new description for the merged collection.
 new_description = ('Results for updated models, which look at how neural encoding depends on behavior both before and ' +
