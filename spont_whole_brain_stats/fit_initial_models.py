@@ -53,11 +53,11 @@ base_ps['q_th'] = 21
 
 # Specify the offset (in number of stacks) to determine the marked start of a quiet period relative to the end of
 # a preceeding behavior; must be >= 1
-base_ps['q_start_offset'] = [1, 3]
+base_ps['q_start_offset'] = [3]
 
 # Specify the offset (in number of stacks) to determine the marked end of a quiet period relative to the start of
 # a succeeding behavior; must be >= 1
-base_ps['q_end_offset'] = 1
+base_ps['q_end_offset'] = [1, 3]
 
 # Specify the cut off threshold we use (in number of stacks) to determine when a real transition has occurred
 base_ps['co_th'] = [3, 6]
@@ -75,6 +75,9 @@ base_ps['pool_preceeding_turns'] = False
 # True if we want to pool succeeding left and right turns into one category
 base_ps['pool_succeeding_turns'] = False
 
+# True if we should remove self transitions
+base_ps['remove_st'] = False
+
 # The reference behavior we use for the preceding behavior
 base_ps['pre_ref_beh'] = 'Q'
 
@@ -82,8 +85,8 @@ base_ps['pre_ref_beh'] = 'Q'
 base_ps['ref_beh'] = 'Q'
 
 # Data to calculate Delta F/F for in each dataset
-base_ps['f_ts_str'] = 'f_1_5_5'
-base_ps['bl_ts_str'] = 'bl_1_5_5_long'
+base_ps['f_ts_str'] = 'f_brain_rois_1_5_5'
+base_ps['bl_ts_str'] = 'bl_brain_rois_1_5_5_long'
 
 # Parameters for calculating dff
 base_ps['background'] = 100
@@ -92,7 +95,7 @@ base_ps['ep'] = 20
 # Min number of subjects we must observe a transition in for us to analyze it
 base_ps['min_n_subjs'] = 1
 
-# Min number of events we must observe a transition in for us to analyze it
+# Min number of events we must observe a preceding or succeeding behavior to include it in the analysis
 base_ps['min_n_events'] = 3
 
 # Alpha value for thresholding p-values when calculating stats - this is not used in producing the final maps
@@ -109,11 +112,11 @@ base_ps['window_length'] = [1, 3]
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\all_supervoxels'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\brain_only'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
-base_ps['save_str'] = 'all_supervoxels'
+base_ps['save_str'] = 'brain_supervoxels'
 
 # ======================================================================================================================
 # Generate dictionaries for all combinations of parameters

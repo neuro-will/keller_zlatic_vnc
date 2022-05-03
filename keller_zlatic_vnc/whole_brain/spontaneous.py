@@ -284,10 +284,6 @@ def fit_init_models(ps: dict):
 
     # ==================================================================================================================
     # Filter events by the behavior transitioned into or from if we are suppose to
-    print('Number of annotations before filtering out unwanted behaviors: ' + str(annotations.shape[0]))
-    print('Preceeding Behaviors before filtering: ' + str(annotations['beh_before'].unique()))
-    print('Behaviors transitioned into before filtering: ' + str(annotations['beh'].unique()))
-
     if ps['acc_behs'] is not None:
         keep_inds = [i for i in annotations.index if annotations['beh'][i] in ps['acc_behs']]
         annotations = annotations.loc[keep_inds]
@@ -295,10 +291,6 @@ def fit_init_models(ps: dict):
     if ps['acc_pre_behs'] is not None:
         keep_inds = [i for i in annotations.index if annotations['beh_before'][i] in ps['acc_pre_behs']]
         annotations = annotations.loc[keep_inds]
-
-    print('Number of annotations after filtering out unwanted behaviors: ' + str(annotations.shape[0]))
-    print('Preceeding Behaviors after filtering: ' + str(annotations['beh_before'].unique()))
-    print('Behaviors transitioned into after filtering: ' + str(annotations['beh'].unique()))
 
     # ==================================================================================================================
     # Pool preceeding turns if requested
@@ -311,6 +303,12 @@ def fit_init_models(ps: dict):
     if ps['pool_succeeding_turns']:
         turn_rows = (annotations['beh'] == 'TL') | (annotations['beh'] == 'TR')
         annotations.loc[turn_rows, 'beh'] = 'TC'
+
+    # ==================================================================================================================
+    # Remove self transitions if requested
+    if ps['remove_st']:
+        self_trans = annotations['beh_before'] == annotations['beh']
+        annotations = annotations.loc[~self_trans]
 
     # ==================================================================================================================
     # Now we read in the Delta F\F data for all subjects
@@ -365,26 +363,34 @@ def fit_init_models(ps: dict):
 
     # ==================================================================================================================
     # Now see how many subjects we have for each transition and the total number of transitions as well
-    n_subjs_per_trans = count_unique_subjs_per_transition(annotations, before_str='beh_before', after_str='beh')
     n_trans = count_transitions(annotations, before_str='beh_before', after_str='beh')
 
     # ==================================================================================================================
-    # Get list of transitions we both observe in enough subjects and have enough total instances of to analyze
-    analyze_trans = [[(bb, ab) for ab in n_subjs_per_trans.loc[bb].index
-                      if (n_subjs_per_trans[ab][bb] >= ps['min_n_subjs'] and n_trans[ab][bb] > ps['min_n_events'])]
-                      for bb in n_subjs_per_trans.index]
-    analyze_trans = list(itertools.chain(*analyze_trans))
+    # Get list of preceding and succeeding behaviors we see in enough subjects and events
+    if ps['min_n_subjs'] > 1:
+        raise(RuntimeError('Support for min_n_subjs not implemented yet.'))
+
+    n_pre_beh_events = n_trans.sum(axis=1)
+    n_succ_beh_events = n_trans.sum(axis=0)
+
+    keep_pre_behs = set([i for i in n_pre_beh_events.index if (n_pre_beh_events[i] >= ps['min_n_events'])])
+    keep_succ_behs = set([i for i in n_succ_beh_events.index if (n_succ_beh_events[i] >= ps['min_n_events'])])
 
     # ==================================================================================================================
-    # Down-select events in annotations to only those with transitions that we will analyze
-    keep_codes = [b[0] + b[1] for b in analyze_trans]
-    annot_trans_codes = [annotations['beh_before'][i] + annotations['beh'][i] for i in annotations.index]
-    keep_annots = np.asarray([True if code in keep_codes else False for code in annot_trans_codes])
+    # Down select to only those events with preceding and succeeding behaviors that appear enough overall to analyze
+
+    keep_annots = np.asarray([True if ((annotations['beh_before'][i] in keep_pre_behs) and
+                                       (annotations['beh'][i] in keep_succ_behs))
+                              else False for i in annotations.index])
 
     analyze_annotations = annotations[keep_annots]
 
     analyzed_n_subjs_per_trans = count_unique_subjs_per_transition(annotations, before_str='beh_before', after_str='beh')
     analyzed_n_trans = count_transitions(annotations, before_str='beh_before', after_str='beh')
+
+    analyze_trans = [[(bb, ab) for ab in analyzed_n_trans.loc[bb].index if analyzed_n_trans[ab][bb] > 1]
+                     for bb in analyzed_n_trans.index]
+    analyze_trans = list(itertools.chain(*analyze_trans))
 
     # ==================================================================================================================
     # Make sure our reference conditions are present
@@ -440,10 +446,17 @@ def fit_init_models(ps: dict):
         s['non_zero_p_corrected_bon'] = corrected_p_vls_bon[s_i, :]
 
     # ==================================================================================================================
+    # Now we calculate mean for each transition we analyze
+    mean_trans_vls = dict()
+    for t in analyze_trans:
+        t_rows = (analyze_annotations['beh_before'] == t[0]) & (analyze_annotations['beh'] == t[1])
+        mean_trans_vls[t] = np.mean(dff[t_rows, :], axis=0)
+
+    # ==================================================================================================================
     # Now save our results
 
     rs = {'ps': ps, 'full_stats': full_stats, 'beh_trans': analyze_trans, 'var_names': mdl_vars,
-          'n_subjs_per_trans': analyzed_n_subjs_per_trans, 'n_trans': analyzed_n_trans}
+          'n_subjs_per_trans': analyzed_n_subjs_per_trans, 'n_trans': analyzed_n_trans, 'mean_trans_vls': mean_trans_vls}
 
     if ps['save_folder'] is not None:
         save_path = Path(ps['save_folder']) / ps['save_name']

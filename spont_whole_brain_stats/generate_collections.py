@@ -41,7 +41,7 @@ import re
 from keller_zlatic_vnc.collections import form_collection
 
 # Folder holding results
-rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps\all_supervoxels'
+rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\brain_only'
 
 # Give path to a file holding parameters used to extract fluorescece
 f_extraction_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\rois_1_5_5\extraction_params.pkl'
@@ -49,18 +49,13 @@ f_extraction_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_16323
 # Give path to a file holding parameters used to extract baselines
 baseline_calc_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\rois_1_5_5\long_baseline_extract_params.pkl'
 
-# Specify the type of maps we are making collections of - either 'mean_cmp' or 'orig_fit'
-map_type = 'orig_fit'
-
 # List those who can be contacted with questions about the collection
 responsible = ['William Bishop <bishopw@hhmi.janelia.org>',
                'Andrew Champion <andrew.champion@gmail.com>']
 
 # Provide a description of the collection.
 description = ('Results for updated models, which look at how neural encoding depends on behavior both before and ' +
-               'after stimulus.  The maps contained here are for the smallest cube-shaped voxels we work with and ' +
-               'they visualize the original models fits - that is the maps can be understood as showing the ' +
-               'behavior vs quiet comparison.')
+               'after stimulus.  The maps contained here are for the smallest cube-shaped voxels in the brain only.')
 
 # List hashes identify commits in git for the different pieces of code used to produce these results
 git_hashes = {'janelia_core': 'ac16ae27170fb304d65d8ab72cf583efc51a3513',
@@ -84,12 +79,13 @@ mdl_fitting_yaml_fields = {
     'acc_pre_behs': 'The set of acceptable behaviors transitioned from that could be included in the analysis',
     'pool_preceeding_turns': 'True if left and right preceding turns should be pooled.',
     'pool_succeeding_turns': 'True if succeeding left and right turns should be pooled.',
+    'remove_st': 'True if self-transitions are removed before fitting models',
     'pre_ref_beh': 'The reference behavior for preceding behaviors',
     'ref_beh': 'The reference behavior for succeeding behaviors',
     'background': 'Background value for calculating DFF',
     'ep': 'Epsilon value for calculating DFF',
     'min_n_subjs': 'The min number of subjects we need to observe a transition for in order to include it in the model.',
-    'min_n_events': 'The min number of times we need to observe a transition (across all subejcts) to include it in the model.',
+    'min_n_events': 'Min number of events we must observe a preceding or succeeding behavior to include it in the analysis.',
     'window_type': 'The method for determining the alignment of the window of neural activity relative to behavior.',
     'window_offset': 'The offset in time points of the start of the window of neural activity relative to behavior.',
     'window_length': 'The length of the window in time points of neural activity analyzed.',

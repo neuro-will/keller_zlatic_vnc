@@ -344,7 +344,7 @@ def merge_metadata(m: Sequence[CommentedMap], _key=None) -> Tuple[CommentedMap, 
             new_entry, diff_keys[k_i] = merge_metadata([m_i[key] for m_i in m], _key=key)
             m_new[key] = new_entry
 
-        # Merge are lists of keys with differences
+        # Merge lists of keys with differences
         diff_keys = [r for r in diff_keys if r is not None]
         diff_keys = list(itertools.chain(*diff_keys))
         return m_new, diff_keys
