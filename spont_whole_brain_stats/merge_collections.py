@@ -19,16 +19,15 @@ import re
 from keller_zlatic_vnc.collections import merge_collections
 
 # Folder containing the original results and individual collections
-rs_folder = r'A:\projects\keller_vnc\results\single_subject\debug'
+rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\brain_only'
 
 # Folder where we should save the merged collection into
-tgt_folder = r'A:\projects\keller_vnc\results\single_subject\debug\merged_collections'
+tgt_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\brain_only_merged'
 
 # A new description for the merged collection.
 new_description = ('Results for updated models, which look at how neural encoding depends on behavior both before and ' +
-                   'after stimulus.  The maps contained here are for the smallest cube-shaped voxels we work with and ' +
-                   'they visualize the original models fits - that is the maps can be understood as showing the ' +
-                   'behavior vs quiet comparison.  The key scripts to run the statistical tests used to produce these ' +
+                   'after stimulus.  The maps contained here are for the smallest cube-shaped voxels in the brain only. ' +
+                   'The key scripts to run the statistical tests used to produce these ' +
                    'maps are fit_init_models.py and find_vls_different_than_other_mean.py. The script ' +
                    'make_spont_whole_brain_movies_and_images.py was then used to render the actual maps.')
 
