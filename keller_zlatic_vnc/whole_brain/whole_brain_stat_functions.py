@@ -569,7 +569,10 @@ g
         small_v = np.nanpercentile(vls, perc)
         if np.isinf(small_v):
             small_v = -100.0
-        return [small_v, np.log10(max_p_vl)]
+        large_v = np.log10(max_p_vl)
+        small_v = min(small_v, large_v)  # Make sure small value is always less than large value.  This is
+                                         # important when all entries in vls are 0
+        return [small_v, large_v]
 
     def generate_norm_map():
         base_map = matplotlib.cm.viridis
