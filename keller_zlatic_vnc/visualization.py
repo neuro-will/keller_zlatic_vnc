@@ -41,7 +41,7 @@ def gen_coef_p_vl_cmap(coef_cmap, clims: Union[float, Sequence[float]], plims: S
     min_p_vl = plims[0]
     max_p_vl = plims[1]
 
-    if max_p_vl < min_p_vl:
+    if max_p_vl <= min_p_vl:
         # Handle this special, degenerate case here - in this case, everything gets mapped to black
         return MultiParamCMap(param_vl_ranges=[(-1, 1, .1), (min_p_vl, min_p_vl + .2, .1)], clrs=np.zeros([20, 3, 3]))
 

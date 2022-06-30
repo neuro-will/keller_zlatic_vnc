@@ -695,6 +695,7 @@ g
                                                clims=coef_clims(coefs, coef_clim_percs),
                                                plims=p_vl_clims(log_p_vls, min_p_val_perc))
 
+
             # Make RGB volumes
 
             combined_vol = combined_cmap[coefs_image, log_p_vls_image]

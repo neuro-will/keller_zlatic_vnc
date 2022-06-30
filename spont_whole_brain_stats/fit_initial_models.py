@@ -57,10 +57,10 @@ base_ps['q_start_offset'] = [3]
 
 # Specify the offset (in number of stacks) to determine the marked end of a quiet period relative to the start of
 # a succeeding behavior; must be >= 1
-base_ps['q_end_offset'] = [1, 3]
+base_ps['q_end_offset'] = 1 #[1, 3]
 
 # Specify the cut off threshold we use (in number of stacks) to determine when a real transition has occurred
-base_ps['co_th'] = [3, 6]
+base_ps['co_th'] = 3 #[3, 6]
 
 # Specify the set of acceptable behaviors transitioned into for events we analyze
 base_ps['acc_behs'] = ['ds', 'Q', 'B', 'F', 'TL', 'TR', 'H']
@@ -85,8 +85,8 @@ base_ps['pre_ref_beh'] = 'Q'
 base_ps['ref_beh'] = 'Q'
 
 # Data to calculate Delta F/F for in each dataset
-base_ps['f_ts_str'] = 'f_brain_rois_1_5_5'
-base_ps['bl_ts_str'] = 'bl_brain_rois_1_5_5_long'
+base_ps['f_ts_str'] = 'f_1_5_5' #'f_brain_rois_1_5_5'
+base_ps['bl_ts_str'] = 'bl_1_5_5_long' #'bl_brain_rois_1_5_5_long'
 
 # Parameters for calculating dff
 base_ps['background'] = 100
@@ -105,14 +105,14 @@ base_ps['alpha'] = .05
 base_ps['window_type'] = 'start_locked'  # 'whole_event' or 'start_locked'
 
 # If we are using a window locked to event start or stop, we give the relative offset and window length here
-base_ps['window_offset'] = [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-base_ps['window_length'] = [1, 3]
+base_ps['window_offset'] = -9 #[-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+base_ps['window_length'] = 1 #[1, 3]
 
 # Specify if we only consider events where the extracted dff window is entirely contained within the event
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\brain_only'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\debug'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
