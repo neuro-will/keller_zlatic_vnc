@@ -41,7 +41,7 @@ import re
 from keller_zlatic_vnc.collections import form_collection
 
 # Folder holding results
-rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\brain_only'
+rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\cell_bodies'
 
 # Give path to a file holding parameters used to extract fluorescece
 f_extraction_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\brain_rois_1_5_5\extraction_params.pkl'

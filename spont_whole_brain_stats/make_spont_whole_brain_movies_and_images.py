@@ -18,11 +18,11 @@ import numpy as np
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_brain_videos_and_max_projs
 
 # Specify folder results are saved in
-results_folder = r'A:\projects\keller_vnc\results\single_subject\debug'
+results_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\cell_bodies'
 
 # Switch for setting additional parameters below based on if we are making images for the initial stats or after
 # comparing each coefficent to the mean of the others in its group
-stat_types = 'initial' # 'initial' or 'mean_cmp'
+stat_types = 'mean_cmp' # 'initial' or 'mean_cmp'
 
 multi_cmp_type = 'by' #'none', 'bon' or 'by'
 
@@ -54,7 +54,7 @@ min_p_vl_perc = .0001
 
 # Name of the roi group the results were generated for - currently, we can only generate results in batch if
 # they are all for the same rois
-roi_group = 'rois_1_5_5'
+roi_group = 'roi_segments_cell_bodies_20200610'
 
 ex_dataset_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\dataset.pkl'
 
