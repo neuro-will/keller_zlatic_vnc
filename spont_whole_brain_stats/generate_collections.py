@@ -55,14 +55,14 @@ responsible = ['William Bishop <bishopw@hhmi.janelia.org>',
 
 # Provide a description of the collection.
 description = ('Results for updated models, which look at how neural encoding depends on behavior both before and ' +
-               'after stimulus.  The maps contained here are for the smallest cube-shaped voxels in the brain only.')
+               'after stimulus.  The maps contained here are for extracted cell bodies.')
 
 # List hashes identify commits in git for the different pieces of code used to produce these results
 git_hashes = {'janelia_core': 'ac16ae27170fb304d65d8ab72cf583efc51a3513',
-              'keller_zlatic_vnc': '58787e2b75177273082c08df0b612fb88b782008'}
+              'keller_zlatic_vnc': '8d7590135187465b5a39f3d061185ff5ea1e5afe'}
 
 # List the parameters that should be included in the metadata file, with comments that should also be included
-f_extraction_yaml_fields = {'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}
+f_extraction_yaml_fields = {} #'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}
 
 baseline_calc_yaml_fields = {'window_length': 'Length of window used for baseline calculation.',
                              'filter_start': 'Initial offset, relative to first data point, of window used for baseline calculations.',
