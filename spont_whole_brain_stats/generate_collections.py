@@ -41,13 +41,13 @@ import re
 from keller_zlatic_vnc.collections import form_collection
 
 # Folder holding results
-rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\cell_bodies'
+rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\segments_3_13_13'
 
 # Give path to a file holding parameters used to extract fluorescece
-f_extraction_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\brain_rois_1_5_5\extraction_params.pkl'
+f_extraction_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\roi_segments_3_13_13\extraction_params.pkl'
 
 # Give path to a file holding parameters used to extract baselines
-baseline_calc_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\brain_rois_1_5_5\long_baseline_extract_params.pkl'
+baseline_calc_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\roi_segments_3_13_13\long_baseline_extract_params.pkl'
 
 # List those who can be contacted with questions about the collection
 responsible = ['William Bishop <bishopw@hhmi.janelia.org>',
@@ -55,7 +55,7 @@ responsible = ['William Bishop <bishopw@hhmi.janelia.org>',
 
 # Provide a description of the collection.
 description = ('Results for updated models, which look at how neural encoding depends on behavior both before and ' +
-               'after stimulus.  The maps contained here are for extracted cell bodies.')
+               'after stimulus.  The maps contained here are for functional segments, seeded with 3 by 13 by 13 voxels.')
 
 # List hashes identify commits in git for the different pieces of code used to produce these results
 git_hashes = {'janelia_core': 'ac16ae27170fb304d65d8ab72cf583efc51a3513',

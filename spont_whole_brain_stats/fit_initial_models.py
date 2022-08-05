@@ -70,10 +70,10 @@ base_ps['acc_pre_behs'] = ['ds', 'Q', 'B', 'F', 'TL', 'TR', 'H']
 
 # True if we want to pool preceding left and right turns into one category (only applies if pool_preceeding_behaviors
 # is false)
-base_ps['pool_preceeding_turns'] = True
+base_ps['pool_preceeding_turns'] = False
 
 # True if we want to pool succeeding left and right turns into one category
-base_ps['pool_succeeding_turns'] = True
+base_ps['pool_succeeding_turns'] = False
 
 # True if we should remove self transitions
 base_ps['remove_st'] = False
@@ -85,8 +85,8 @@ base_ps['pre_ref_beh'] = 'Q'
 base_ps['ref_beh'] = 'Q'
 
 # Data to calculate Delta F/F for in each dataset
-base_ps['f_ts_str'] = 'f_roi_segments_cell_bodies_20200610' #'f_brain_rois_1_5_5'
-base_ps['bl_ts_str'] = 'bl_roi_segments_cell_bodies_20200610_long' #'bl_brain_rois_1_5_5_long'
+base_ps['f_ts_str'] = 'f_roi_segments_3_13_13' #'f_brain_rois_1_5_5'
+base_ps['bl_ts_str'] = 'bl_roi_segments_3_13_13_long' #'bl_brain_rois_1_5_5_long'
 
 # Parameters for calculating dff
 base_ps['background'] = 100
@@ -112,11 +112,11 @@ base_ps['window_length'] = [1, 3]
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\cell_bodies'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\segments_3_13_13'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
-base_ps['save_str'] = 'cell_bodies'
+base_ps['save_str'] = 'segments_3_13_13'
 
 # ======================================================================================================================
 # Generate dictionaries for all combinations of parameters
