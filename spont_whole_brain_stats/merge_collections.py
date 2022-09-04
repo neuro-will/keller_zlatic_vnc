@@ -19,14 +19,14 @@ import re
 from keller_zlatic_vnc.collections import merge_collections
 
 # Folder containing the original results and individual collections
-rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\cell_bodies'
+rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\segments_3_13_13'
 
 # Folder where we should save the merged collection into
-tgt_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\cell_bodies_v1_collection'
+tgt_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\segments_3_13_13_collection'
 
 # A new description for the merged collection.
 new_description = ('Results for updated models, which look at how neural encoding depends on behavior both before and ' +
-               'after stimulus.  The maps contained here are for extracted cell bodies.' +
+                   'after stimulus.  The maps contained here are for functional segments seeded with 3 by 13 by 13 supervoxels.' +
                    'The key scripts to run the statistical tests used to produce these ' +
                    'maps are fit_init_models.py and find_vls_different_than_other_mean.py. The script ' +
                    'make_spont_whole_brain_movies_and_images.py was then used to render the actual maps.')

@@ -85,8 +85,8 @@ base_ps['pre_ref_beh'] = 'Q'
 base_ps['ref_beh'] = 'Q'
 
 # Data to calculate Delta F/F for in each dataset
-base_ps['f_ts_str'] = 'f_roi_segments_3_13_13' #'f_brain_rois_1_5_5'
-base_ps['bl_ts_str'] = 'bl_roi_segments_3_13_13_long' #'bl_brain_rois_1_5_5_long'
+base_ps['f_ts_str'] = 'f_1_5_5' #'f_brain_rois_1_5_5'
+base_ps['bl_ts_str'] = 'bl_1_5_5_long' #'bl_brain_rois_1_5_5_long'
 
 # Parameters for calculating dff
 base_ps['background'] = 100
@@ -112,11 +112,11 @@ base_ps['window_length'] = [1, 3]
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\segments_3_13_13'
+base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\whole_specimen_rois'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
-base_ps['save_str'] = 'segments_3_13_13'
+base_ps['save_str'] = 'rois_1_5_5'
 
 # ======================================================================================================================
 # Generate dictionaries for all combinations of parameters

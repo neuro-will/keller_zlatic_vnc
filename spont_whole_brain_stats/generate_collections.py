@@ -41,13 +41,13 @@ import re
 from keller_zlatic_vnc.collections import form_collection
 
 # Folder holding results
-rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\segments_3_13_13'
+rs_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\whole_specimen_rois'
 
 # Give path to a file holding parameters used to extract fluorescece
-f_extraction_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\roi_segments_3_13_13\extraction_params.pkl'
+f_extraction_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\rois_1_5_5\extraction_params.pkl'
 
 # Give path to a file holding parameters used to extract baselines
-baseline_calc_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\roi_segments_3_13_13\long_baseline_extract_params.pkl'
+baseline_calc_params_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\rois_1_5_5\long_baseline_extract_params.pkl'
 
 # List those who can be contacted with questions about the collection
 responsible = ['William Bishop <bishopw@hhmi.janelia.org>',
@@ -55,14 +55,14 @@ responsible = ['William Bishop <bishopw@hhmi.janelia.org>',
 
 # Provide a description of the collection.
 description = ('Results for updated models, which look at how neural encoding depends on behavior both before and ' +
-               'after stimulus.  The maps contained here are for functional segments, seeded with 3 by 13 by 13 voxels.')
+               'after stimulus.  The maps contained here are for supervoxels across the specimen.')
 
 # List hashes identify commits in git for the different pieces of code used to produce these results
 git_hashes = {'janelia_core': 'ac16ae27170fb304d65d8ab72cf583efc51a3513',
-              'keller_zlatic_vnc': '8d7590135187465b5a39f3d061185ff5ea1e5afe'}
+              'keller_zlatic_vnc': '5373cf6dfdbae4ae696845a153122db3d7b23132'}
 
 # List the parameters that should be included in the metadata file, with comments that should also be included
-f_extraction_yaml_fields = {} #'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}
+f_extraction_yaml_fields = {'segmentation_file': 'File segmentations were saved in.'} #'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}
 
 baseline_calc_yaml_fields = {'window_length': 'Length of window used for baseline calculation.',
                              'filter_start': 'Initial offset, relative to first data point, of window used for baseline calculations.',
@@ -134,7 +134,7 @@ for f_i, f in enumerate(rs_files):
     # Form the collection
     params = [{'desc': 'f_extraction_params',
           'for_saving': f_extraction_params,
-          'for_metadata': f_extraction_params['roi_extract_opts'],
+          'for_metadata': f_extraction_params, #f_extraction_params['roi_extract_opts'],
           'inc_params': f_extraction_yaml_fields},
           {'desc': 'baseline_calc_params',
           'for_saving': baseline_calc_params,
