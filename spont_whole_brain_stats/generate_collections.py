@@ -59,10 +59,10 @@ description = ('Results for updated models, which look at how neural encoding de
 
 # List hashes identify commits in git for the different pieces of code used to produce these results
 git_hashes = {'janelia_core': 'ac16ae27170fb304d65d8ab72cf583efc51a3513',
-              'keller_zlatic_vnc': '5373cf6dfdbae4ae696845a153122db3d7b23132'}
+              'keller_zlatic_vnc': '96e8059f6206830993a897ad78e62b637a0d4e7d'}
 
 # List the parameters that should be included in the metadata file, with comments that should also be included
-f_extraction_yaml_fields = {'segmentation_file': 'File segmentations were saved in.'} #'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'}
+f_extraction_yaml_fields = {'voxel_size_per_dim': 'Number of voxels in each dimension of a supervoxel.'} # 'segmentation_file': 'File segmentations were saved in.'
 
 baseline_calc_yaml_fields = {'window_length': 'Length of window used for baseline calculation.',
                              'filter_start': 'Initial offset, relative to first data point, of window used for baseline calculations.',
