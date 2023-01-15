@@ -17,7 +17,6 @@ setup(
 	"fpdf",
 	"h5py",
     "imageio",
-    "jupyter",
 	"matplotlib",
     "numpy",
     "opencv_python",
