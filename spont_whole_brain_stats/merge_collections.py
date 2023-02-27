@@ -28,7 +28,7 @@ tgt_folder = r'/groups/bishop/bishoplab/projects/keller_vnc/results/single_subje
 new_description = ('Results for updated models, which look at how neural encoding depends on behavior both before and ' +
                    'after stimulus.  The maps contained here are for 5x5x1 rois throughout the whole specimen. ' +
                    'The key scripts to run the statistical tests used to produce these ' +
-                   'maps are fit_init_models.py and find_vls_different_than_other_mean.py. The script ' +
+                   'maps are fit_initial_models.py and find_vls_different_than_other_mean.py. The script ' +
                    'make_spont_whole_brain_movies_and_images.py was then used to render the actual maps.')
 
 # Specify the type of maps the collections we are merging were made for
