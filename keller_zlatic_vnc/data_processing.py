@@ -596,7 +596,6 @@ def match_annotation_subject_to_volume_subject(vol_subject_main_folder: str, vol
     match = re.search('(?P<subject>.+)-561nm.+', vol_subject_sub_folder)
     subject = match['subject']
     annot_match_str = vol_subject_main_folder + '-' + subject
-
     # See if we can find this subject in the annotations
     trans_i = np.argwhere(annot_subjects == annot_match_str)
     if trans_i.size > 0:
@@ -1148,6 +1147,82 @@ def single_cell_extract_dff_with_anotations(activity_tbl: pd.DataFrame, event_tb
                         'beh': event['beh'],
                         'dff': dff}
             full_tbl = full_tbl.append(row_dict, ignore_index=True)
+
+    return full_tbl
+
+
+def whole_brain_extract_dff_with_annotations(dff: np.ndarray, event_tbl: pd.DataFrame,
+                                             align_col: str, ref_offset: int, window_l: int,
+                                             window_type: str = 'start_aligned', end_align_col: str = None,
+                                             end_ref_offset: int = 0) -> pd.DataFrame:
+    """ Extracts DFF for all rois in a data matrix for a given set of events and puts results in a table with annotations.
+
+    DFF will be extracted as the mean DFF value in windows for each event. By default, these windows are of a fixed
+    length and located a certain offset from a reference index for each event. Alternatively, the user can specify
+    events to align both the start and end of the window to.
+
+    Args:
+
+        dff: Matrix of dff values of shape [n_time_pts, n_rois]
+
+        event_tbl: Table with marked events.  Should have the columns 'event_id', 'beh_before',
+        'beh_after', 'beh' and at least one column with a label as given by align_col (see below) indicating
+        the starting index for each event to align windows to for pulling out DFF
+
+        align_col: The name of the column in event_tbl with the indices into the DFF traces in activity_tbl to which
+        the start of windows for calculating DFF in should be aligned to.
+
+        ref_offset: The offset to add to the indices in align_col when positioning the start of the window for
+        calculating DFF.
+
+        window_l: The length of the window to calculate mean DFF in. This is only used if window_type (see below) is
+        'start_aligned'
+
+        window_type: The type of window to use.  If 'start_aligned' windows of fixed length aligned to the start of a
+        certain event are used.  If 'start_end_aligned' windows with the start and end aligned to seperate events are
+        used.
+
+        end_align_col: If window_type is 'start_end_aligned' this is the event to align the end of the window to.  If
+        window_type is 'start_aligned' this is ignored.
+
+        end_ref_offset: If window_type is 'start_end_aligned' this is the offset to add to the indices in end_align_col
+        when positioning the end of the window for calculating DFF.
+
+    Returns:
+
+        full_tbl: A table with the extracted DFF for and event.  Will have the columns: 'subject_id',
+        'manipulation_tgt', 'event_id', 'beh_before', 'beh_after', 'beh' and 'dff'.
+
+    Raises:
+
+        ValueError: If window_type is not start_aligned or start_end_aligned
+
+    """
+
+    if not (window_type == 'start_aligned' or window_type == 'start_end_aligned'):
+        raise(ValueError('window_type must be either start_aligned or start_end_aligned'))
+
+    full_tbl = pd.DataFrame(columns=['subject_id', 'manipulation_tgt', 'event_id', 'beh_before', 'beh_after', 'beh', 'dff'])
+
+    # Iterate through cells
+    for _, event in event_tbl.iterrows():
+        # Calculate DFF in the requested window
+        start_ind = event[align_col] + ref_offset
+        if window_type == 'start_aligned':
+            stop_ind = start_ind + window_l
+        else:
+            stop_ind = event[end_align_col] + end_ref_offset
+        event_dff = np.mean(dff[start_ind:stop_ind, :], axis=0)
+
+        # Add dff with annotations to the full table
+        row_dict = {'subject_id': event['subject_id'],
+                    'manipulation_tgt': event['manipulation_tgt'],
+                    'event_id': event['event_id'],
+                    'beh_before': event['beh_before'],
+                    'beh_after': event['beh_after'],
+                    'beh': event['beh'],
+                    'dff': event_dff}
+        full_tbl = full_tbl.append(row_dict, ignore_index=True)
 
     return full_tbl
 
