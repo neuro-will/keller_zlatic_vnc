@@ -23,9 +23,8 @@ from keller_zlatic_vnc.whole_brain.spontaneous import fit_init_models
 # Parameters go here.
 #
 # Here we provide values that we use for fitting.  To specify that we should sweep through values for a parameter,
-# provide those values in a list.  If we need to provide a single value, which is itself a list, then to ensure the
-# code recognizes the list as a single value, enclose it an another list.  The code will then interpret this as
-# a list of parameters of length 1, with a single value which is itself a list.
+# provide those values in a list.  If we need to provide a single value, which is itself a list, then the first value
+# of that list should be the string 'ds' to indicate we should not split that list.
 # ======================================================================================================================
 
 base_ps = dict()
