@@ -18,14 +18,13 @@ import numpy as np
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_brain_videos_and_max_projs
 
 # Specify folder results are saved in
-results_folder = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\whole_specimen_rois'
+results_folder = r'Z:\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\1_5_5\state_dep'
 
 # Switch for setting additional parameters below based on if we are making images for the initial stats or after
 # comparing each coefficent to the mean of the others in its group
-stat_types = 'mean_cmp' # 'initial' or 'mean_cmp'
+stat_types = 'initial' # 'initial' or 'mean_cmp'
 
 multi_cmp_type = 'by' #'none', 'bon' or 'by'
-
 
 # Provide a string suffix specifying the results file
 if stat_types == 'initial':
@@ -34,9 +33,9 @@ else:
     rs_str = '.*_mean_cmp_stats.pkl'
 
 # Specify location of overlay files - these are for max projections
-overlay_files = [r'A:\projects\keller_vnc\data\overlays\horz_mean.png',
-                 r'A:\projects\keller_vnc\data\overlays\cor_mean.png',
-                 r'A:\projects\keller_vnc\data\overlays\sag_mean.png']
+overlay_files = [r'Z:\bishoplab\projects\keller_drive\keller_vnc\data\overlays\horz_mean.png',
+                 r'Z:\bishoplab\projects\keller_drive\keller_vnc\data\overlays\cor_mean.png',
+                 r'Z:\bishoplab\projects\keller_drive\keller_vnc\data\overlays\sag_mean.png']
 
 # The string p-values are stored under: 'non_zero_p' or 'eq_mean_p'
 if stat_types == 'initial':
@@ -56,7 +55,7 @@ min_p_vl_perc = .0001
 # they are all for the same rois
 roi_group = 'rois_1_5_5'
 
-ex_dataset_file = r'W:\SV4\CW_18-02-15\L1-561nm-openLoop_20180215_163233.corrected\extracted\dataset.pkl'
+ex_dataset_file = r'W:\\SV4\\CW_17-08-23\\L1-561nm-ROIMonitoring_20170823_145226.corrected\\extracted\\dataset.pkl'
 
 # Find results to generate images and maps for
 results_files = glob.glob(str(Path(results_folder) / '*.pkl'))
@@ -95,8 +94,8 @@ for f in results_files:
                                           overlay_files=overlay_files,
                                           roi_group=roi_group,
                                           save_supp_str='',
-                                          gen_mean_movie=True,
-                                          gen_mean_tiff=True,
+                                          gen_mean_movie=False,
+                                          gen_mean_tiff=False,
                                           gen_coef_movies=False,
                                           gen_coef_tiffs=True,
                                           gen_p_value_movies=False,
