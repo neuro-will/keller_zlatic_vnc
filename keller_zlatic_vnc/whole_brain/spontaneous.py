@@ -6,6 +6,7 @@ import itertools
 import os
 from pathlib import Path
 import pickle
+from typing import Tuple
 
 import multiprocessing as mp
 import numpy as np
@@ -65,6 +66,45 @@ def apply_multiple_comparisons_corrections(p_vls: np.ndarray, computed_p_vls: np
         corrected_p_vls_bon[computed_p_vls[:, c_i], c_i] = cur_col_corrected_p_vls_bon
 
     return corrected_p_vls_by, corrected_p_vls_bon
+
+
+def calc_mean_dff(x: np.ndarray, start: int, stop: int, window_type: str,
+                  window_offset: int = None, window_length: int = None) -> Tuple[np.ndarray, bool, bool]:
+    """Calculates mean DFF in a window.
+
+    Args:
+        x: DFF of shape n_time_pts * n_rois
+        start: start index of the event
+        stop: stop index of the event
+        window_type: Type of window.  Either 'whole_event' or 'start_locked'.
+        window_offset: The offset to the start of the window from event start if window type is start_locked.
+        window_length: The length of the window if the window tpe is start_locked.
+
+    Returns:
+         mn_vls: The mean values across all rois.
+         starts_within_event: True if the window starts within the event.
+         stops_within_event: True if the window stops within the event.
+    """
+
+    if window_type == 'whole_event':
+        take_slice = slice(start, stop)
+        starts_within_event = True
+        stops_within_event = True
+    elif window_type == 'start_locked':
+        start_offset = start + window_offset
+        stop_offset = start_offset + window_length
+        take_slice = slice(start_offset, stop_offset)
+        starts_within_event = (stop >= start_offset) and (start <= stop_offset)
+        stops_within_event = (stop >= stop_offset) and (start <= stop_offset)
+    else:
+        raise(ValueError('The window_type is not recogonized.'))
+
+    if (take_slice.start < 0) or (take_slice.stop > x.shape[0]):
+        mn_vls = np.nan
+    else:
+        mn_vls = np.mean(x[take_slice, :], axis=0)
+
+    return mn_vls, starts_within_event, stops_within_event
 
 
 def fit_init_models(ps: dict):
@@ -197,31 +237,6 @@ def fit_init_models(ps: dict):
     """
 
     # ==================================================================================================================
-    # Define helper functions
-
-    def calc_mean_dff(x, start, stop):
-
-        if ps['window_type'] == 'whole_event':
-            take_slice = slice(start, stop)
-            starts_within_event = True
-            stops_within_event = True
-        elif ps['window_type'] == 'start_locked':
-            start_offset = start + ps['window_offset']
-            stop_offset = start_offset + ps['window_length']
-            take_slice = slice(start_offset, stop_offset)
-            starts_within_event = (stop >= start_offset) and (start <= stop_offset)
-            stops_within_event = (stop >= stop_offset) and (start <= stop_offset)
-        else:
-            raise(ValueError('The window_type is not recogonized.'))
-
-        if (take_slice.start < 0) or (take_slice.stop > x.shape[0]):
-            mn_vls = np.nan
-        else:
-            mn_vls = np.mean(x[take_slice, :], axis=0)
-
-        return mn_vls, starts_within_event, stops_within_event
-
-    # ==================================================================================================================
     # Get list of all subjects we can analyze
 
     # Get list of all annotation files and the subjects they correspond to
@@ -337,7 +352,8 @@ def fit_init_models(ps: dict):
         for index in s_events.index:
             event_start = s_events['start'][index]
             event_stop = s_events['end'][index] + 1 # +1 to account for inclusive indexing in table
-            extracted_dff[index] = calc_mean_dff(dff, event_start, event_stop)
+            extracted_dff[index] = calc_mean_dff(dff, event_start, event_stop, ps['window_type'],
+                                                 ps['window_offset'], ps['window_length'])
 
     # ==================================================================================================================
     # Remove any events where the $\Delta F /F$ window fell outside of the recorded data
