@@ -30,7 +30,7 @@ base_ps = dict()
 base_ps['processed_data_file'] = r'Z:\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\1_5_5\state_dep_1_5_5.pkl'
 
 # The manipulation targer we want to analyze events for.  Either 'A4', 'A9' or None (which indicates pooling).
-base_ps['manipulation_tgt'] = None
+base_ps['manipulation_tgt'] = 'A4'
 
 # True if we are suppose to pool left and right turns
 base_ps['pool_turns'] = [True, False]
@@ -51,7 +51,7 @@ base_ps['ref_beh'] = 'Q'
 base_ps['ind_alpha'] = .05
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'Z:\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\1_5_5\state_dep'
+base_ps['save_folder'] = r'Z:\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\1_5_5\state_dep_A4'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
