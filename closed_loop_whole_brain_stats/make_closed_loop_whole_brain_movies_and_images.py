@@ -18,13 +18,13 @@ import numpy as np
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_brain_videos_and_max_projs
 
 # Specify folder results are saved in
-results_folder = r'Z:\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\1_5_5\state_dep_A4'
+results_folder = r'Z:\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\1_5_5\state_dep_A4_bon'
 
 # Switch for setting additional parameters below based on if we are making images for the initial stats or after
 # comparing each coefficent to the mean of the others in its group
 stat_types = 'initial' # 'initial' or 'mean_cmp'
 
-multi_cmp_type = 'by' #'none', 'bon' or 'by'
+multi_cmp_type = 'none' #'none', 'bon' or 'by'
 
 # Provide a string suffix specifying the results file
 if stat_types == 'initial':
