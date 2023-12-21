@@ -107,7 +107,7 @@ def calc_mean_dff(x: np.ndarray, start: int, stop: int, window_type: str,
     return mn_vls, starts_within_event, stops_within_event
 
 
-def fit_init_models(ps: dict):
+def fit_init_models(ps: dict, return_dff: bool = False) -> Tuple[dict, dict, dict]:
     """ Fits initial models to spontaneous activity.
 
     This function will:
@@ -226,13 +226,17 @@ def fit_init_models(ps: dict):
 
             save_name: Name of the file to save results in
 
+        return_dff: If true a dictionary with full dff time series for all volumes will be returned.  Keys correspond
+            to subject ids.  Note this is very memory intensive.
+
     Returns:
 
             rs: The fitting results
 
             ananlyze_annotations: The annotations for all events that were used in model fitting
 
-            dff: The full recorded of dff for the last loaded subject (this is mainly provided for debugging)
+            dff: If return_dff is true, a dictionary with keys which are subject ids and values which are calculated
+            dff traces for full volumes.  If return_dff is false, this will be an empyt dictionary.
 
     """
 
@@ -327,6 +331,8 @@ def fit_init_models(ps: dict):
 
     # ==================================================================================================================
     # Now we read in the Delta F\F data for all subjects
+    dff_traces = dict()
+
     extracted_dff = dict()
     for s_id in analyze_subjs:
         print('Gathering neural data for subject ' + s_id)
@@ -346,6 +352,9 @@ def fit_init_models(ps: dict):
         f = dataset.ts_data[ps['f_ts_str']]['vls'][:]
         b = dataset.ts_data[ps['bl_ts_str']]['vls'][:]
         dff = calc_dff(f=f, b=b, background=ps['background'], ep=ps['ep'])
+
+        if return_dff:
+            dff_traces[s_id] = dff
 
         # Get the dff for each event
         s_events = annotations[annotations['subject_id'] == s_id]
@@ -480,7 +489,7 @@ def fit_init_models(ps: dict):
             pickle.dump(rs, f)
 
     # Provide output
-    return rs, analyze_annotations
+    return rs, analyze_annotations, dff_traces
 
 
 def parallel_test_for_diff_than_mean_vls(ps: dict):

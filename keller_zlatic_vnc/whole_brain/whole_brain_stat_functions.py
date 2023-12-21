@@ -453,7 +453,7 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
         overlay_files: Paths to files that should be overlaid projections
 
         save_supp_str: A descriptive string to include in filenames when saving movie and image files.
-g
+
         gen_mean_movie: True if a movie of the mean (through time) of the example dataset sample should be generted.
 
         gen_mean_tiff: True if a tiff of the mean (through time) of the example dataset sample should be generted.
