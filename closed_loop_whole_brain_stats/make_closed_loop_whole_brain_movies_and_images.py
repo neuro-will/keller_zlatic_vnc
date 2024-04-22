@@ -18,13 +18,13 @@ import numpy as np
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_brain_videos_and_max_projs
 
 # Specify folder results are saved in
-results_folder = r'Z:\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\1_5_5\state_dep_A4_bon'
+results_folder = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\5_25_25\state_dep_5_25_25'
 
 # Switch for setting additional parameters below based on if we are making images for the initial stats or after
 # comparing each coefficent to the mean of the others in its group
 stat_types = 'initial' # 'initial' or 'mean_cmp'
 
-multi_cmp_type = 'none' #'none', 'bon' or 'by'
+multi_cmp_type = 'by' #'none', 'bon' or 'by'
 
 # Provide a string suffix specifying the results file
 if stat_types == 'initial':
@@ -33,9 +33,9 @@ else:
     rs_str = '.*_mean_cmp_stats.pkl'
 
 # Specify location of overlay files - these are for max projections
-overlay_files = [r'Z:\bishoplab\projects\keller_drive\keller_vnc\data\overlays\horz_mean.png',
-                 r'Z:\bishoplab\projects\keller_drive\keller_vnc\data\overlays\cor_mean.png',
-                 r'Z:\bishoplab\projects\keller_drive\keller_vnc\data\overlays\sag_mean.png']
+overlay_files = [r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\overlays\horz_mean.png',
+                 r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\overlays\cor_mean.png',
+                 r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\overlays\sag_mean.png']
 
 # The string p-values are stored under: 'non_zero_p' or 'eq_mean_p'
 if stat_types == 'initial':
@@ -49,11 +49,11 @@ elif multi_cmp_type == 'by':
     p_vl_str += '_corrected_by'
 
 # Lower percentage of p-values that brightness saturates at - should be between 0 and 100
-min_p_vl_perc = .0001
+min_p_vl_perc = .01
 
 # Name of the roi group the results were generated for - currently, we can only generate results in batch if
 # they are all for the same rois
-roi_group = 'rois_1_5_5'
+roi_group = 'rois_5_25_25'
 
 ex_dataset_file = r'W:\\SV4\\CW_17-08-23\\L1-561nm-ROIMonitoring_20170823_145226.corrected\\extracted\\dataset.pkl'
 

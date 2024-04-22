@@ -635,7 +635,9 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
 
             coef_tiff_path = save_folder_path / (coef_file_name + '.tiff')
             if gen_coef_tiffs and (not os.path.isfile(coef_tiff_path)):
-                tifffile.imwrite(coef_tiff_path, coefs_image, compress=6,
+                tifffile.imwrite(coef_tiff_path, coefs_image,
+                                 compression='zlib',
+                                 compressionargs={'level': 6},
                                  metadata={'SuggestedMinSampleValue': coef_c_lim_vls[0],
                                            'SuggestedMaxSampleValue': coef_c_lim_vls[1]})
 
@@ -653,7 +655,9 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
 
             p_vl_tiff_path = save_folder_path / (p_vl_file_name + '.tiff')
             if gen_p_value_tiffs and (not os.path.isfile(p_vl_tiff_path)):
-                tifffile.imwrite(p_vl_tiff_path, log_p_vls_image, compress=6,
+                tifffile.imwrite(p_vl_tiff_path, log_p_vls_image,
+                                 compression='zlib',
+                                 compressionargs={'level': 6},
                                  metadata={'SuggestedMinSampleValue': p_vl_c_lim_vls[0],
                                            'SuggestedMaxSampleValue': p_vl_c_lim_vls[1]})
 
@@ -676,7 +680,9 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
 
                 filtered_coef_tiff_path = save_folder_path / (filtered_coef_file_name + '.tiff')
                 if gen_filtered_coef_tiffs:
-                    tifffile.imwrite(filtered_coef_tiff_path, coefs_image_th, compress=6,
+                    tifffile.imwrite(filtered_coef_tiff_path, coefs_image_th,
+                                     compression='zlib',
+                                     compressionargs={'level': 6},
                                      metadata={'SuggestedMinSampleValue': coef_c_lim_vls[0],
                                                'SuggestedMaxSampleValue': coef_c_lim_vls[1]})
 
@@ -708,7 +714,10 @@ def make_whole_brain_videos_and_max_projs(rs: dict(), save_folder_path: Path,
             # Save tiff stacks of RGB volumes
             combined_tiff_path = save_folder_path / (combined_file_name + '.tiff')
             if gen_combined_tiffs and (not os.path.exists(combined_tiff_path)):
-                tifffile.imwrite(combined_tiff_path, combined_vol_uint8, compress=6)
+                tifffile.imwrite(combined_tiff_path,
+                                 combined_vol_uint8,
+                                 compression='zlib',
+                                 compressionargs={'level': 6})
 
                 # Save colormaps for combined tiffs
                 combined_cmap_file = save_folder_path / (combined_file_name + '_cmap.pkl')

@@ -1568,7 +1568,7 @@ def find_usable_partial_overlap_events(ints: np.ndarray):
         return overlap_ints
 
     n_events = ints.shape[0]
-    good_rows = np.zeros(n_events, dtype=np.bool)
+    good_rows = np.zeros(n_events, dtype=bool)
     for e_i in range(n_events):
         cur_rows = np.delete(np.arange(n_events), e_i)
         cur_overlapping_events = _find_overlapping_ints(ints[e_i, :], ints[cur_rows, :], cur_rows)
