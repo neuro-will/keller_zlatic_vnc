@@ -28,12 +28,11 @@ from keller_zlatic_vnc.whole_brain.spontaneous import fit_init_models
 # ======================================================================================================================
 
 base_ps = dict()
-
 # Folders containing a4 and a9 annotation data
-base_ps['annot_folders'] = [['ds', r'A:\projects\keller_vnc\data\full_annotations\em_volume_behavior_csv']]
+base_ps['annot_folders'] = [['ds', r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\full_annotations\em_volume_behavior_csv']]
 
 # File containing locations to registered volumes
-base_ps['volume_loc_file'] = r'A:\projects\keller_vnc\data\EM_volume_experiment_data_locations.xlsx'
+base_ps['volume_loc_file'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\EM_volume_experiment_data_locations.xlsx'
 
 # List subjects we do not want to include in the analysis
 base_ps['exclude_subjs'] = set(['CW_17-11-06-L2'])
@@ -84,8 +83,8 @@ base_ps['pre_ref_beh'] = 'Q'
 base_ps['ref_beh'] = 'Q'
 
 # Data to calculate Delta F/F for in each dataset
-base_ps['f_ts_str'] = 'f_1_5_5' #'f_brain_rois_1_5_5'
-base_ps['bl_ts_str'] = 'bl_1_5_5_long' #'bl_brain_rois_1_5_5_long'
+base_ps['f_ts_str'] = 'f_brain_rois_1_5_5'
+base_ps['bl_ts_str'] = 'bl_brain_rois_1_5_5_161' #'bl_brain_rois_1_5_5_long'
 
 # Parameters for calculating dff
 base_ps['background'] = 100
@@ -111,11 +110,11 @@ base_ps['window_length'] = [1, 3]
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'A:\projects\keller_vnc\results\single_subject\new_model_maps_v1\whole_specimen_rois'
+base_ps['save_folder'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\single_subject\new_bl\brain_only'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
-base_ps['save_str'] = 'rois_1_5_5'
+base_ps['save_str'] = 'brain_rois'
 
 # ======================================================================================================================
 # Generate dictionaries for all combinations of parameters
