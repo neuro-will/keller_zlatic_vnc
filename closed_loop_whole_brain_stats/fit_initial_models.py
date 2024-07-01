@@ -27,7 +27,7 @@ from keller_zlatic_vnc.utils import form_combinations_from_dict
 
 base_ps = dict()
 
-base_ps['processed_data_file'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\5_25_25\state_dep_5_25_25.pkl'
+base_ps['processed_data_file'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\5_25_25\decision_dependence_5_25_25.pkl'
 
 # The manipulation targer we want to analyze events for.  Either 'A4', 'A9' or None (which indicates pooling).
 base_ps['manipulation_tgt'] = 'A4'
@@ -51,7 +51,11 @@ base_ps['ref_beh'] = 'Q'
 base_ps['ind_alpha'] = .05
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\5_25_25\state_dep_5_25_25'
+base_ps['save_folder'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\new_whole_brain_stats\5_25_25\decision_dependence_5_25_25_no_clustered_errors'
+
+# Specify if we do a clustered errors analysis by subject
+base_ps['group_by_subjects'] = False
+
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended

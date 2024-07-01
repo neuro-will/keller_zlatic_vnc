@@ -47,6 +47,7 @@ def fit_init_models(ps: dict):
             min_n_succ_subjs - Minimum number of subjects we must see a succeeding behavior in to include in the analysis
             ref_beh - The reference behavior for modeling.
             ind_alpha - The significance level we reject individual null hypotheses at at
+            group_by_subject: True if we should used a clustered error analysis; False if not.
     """
 
     # ==================================================================================================================
@@ -132,13 +133,22 @@ def fit_init_models(ps: dict):
     n_rois = dff.shape[1]
     n_cpu = mp.cpu_count()
     with mp.Pool(n_cpu) as pool:
-        full_stats = pool.starmap(spontaneous._init_fit_multi_subj_stats_f, [(one_hot_data_ref,
+        if ps['group_by_subjects']:
+            full_stats = pool.starmap(spontaneous._init_fit_multi_subj_stats_f, [(one_hot_data_ref,
                                                                               dff[:, r_i],
                                                                               g,
                                                                               ps['ind_alpha'])
                                                                              for r_i in range(n_rois)]
                                   )
-    # Here we do multiple comparisons corrections
+        else:
+            full_stats = pool.starmap(spontaneous._init_fit_single_subj_stats_f, [(one_hot_data_ref,
+                                                                                  dff[:, r_i],
+                                                                                  g, # Unused
+                                                                                  ps['ind_alpha'])
+                                                                                 for r_i in range(n_rois)]
+                                      )
+
+            # Here we do multiple comparisons corrections
     p_vls = np.stack([s['non_zero_p'] for s in full_stats])
     computed_p_vls = np.stack([s['computed'] for s in full_stats])
     computed_p_vls_matrix = np.tile(computed_p_vls[:, np.newaxis], [1, p_vls.shape[1]])

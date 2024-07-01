@@ -19,14 +19,15 @@ import re
 from keller_zlatic_vnc.collections import merge_collections
 
 # Folder containing the original results and individual collections
-rs_folder = r'/groups/bishop/bishoplab/projects/keller_vnc/results/single_subject/new_model_maps_v1/whole_specimen_rois'
+rs_folder = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\single_subject\new_bl\brain_only_1001'
 
 # Folder where we should save the merged collection into
-tgt_folder = r'/groups/bishop/bishoplab/projects/keller_vnc/results/single_subject/new_model_maps_v1/whole_specimen_rois_collection'
+tgt_folder = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\single_subject\new_bl\brain_only_merged_1001'
 
 # A new description for the merged collection.
 new_description = ('Results for updated models, which look at how neural encoding depends on behavior both before and ' +
-                   'after stimulus.  The maps contained here are for 5x5x1 rois throughout the whole specimen. ' +
+                   'after stimulus.  The maps contained here are for 5x5x1 rois throughout the brain. ' +
+                   ' We specifically use a baseline of 1001 samples. ' +
                    'The key scripts to run the statistical tests used to produce these ' +
                    'maps are fit_initial_models.py and find_vls_different_than_other_mean.py. The script ' +
                    'make_spont_whole_brain_movies_and_images.py was then used to render the actual maps.')

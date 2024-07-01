@@ -18,7 +18,7 @@ import numpy as np
 from keller_zlatic_vnc.whole_brain.whole_brain_stat_functions import make_whole_brain_videos_and_max_projs
 
 # Specify folder results are saved in
-results_folder = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\single_subject\new_bl\brain_only'
+results_folder = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\single_subject\new_bl\brain_only_1001'
 
 # Switch for setting additional parameters below based on if we are making images for the initial stats or after
 # comparing each coefficent to the mean of the others in its group

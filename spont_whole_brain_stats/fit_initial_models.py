@@ -68,10 +68,10 @@ base_ps['acc_pre_behs'] = ['ds', 'Q', 'B', 'F', 'TL', 'TR', 'H']
 
 # True if we want to pool preceding left and right turns into one category (only applies if pool_preceeding_behaviors
 # is false)
-base_ps['pool_preceeding_turns'] = False
+base_ps['pool_preceeding_turns'] = True
 
 # True if we want to pool succeeding left and right turns into one category
-base_ps['pool_succeeding_turns'] = False
+base_ps['pool_succeeding_turns'] = True
 
 # True if we should remove self transitions
 base_ps['remove_st'] = False
@@ -84,7 +84,7 @@ base_ps['ref_beh'] = 'Q'
 
 # Data to calculate Delta F/F for in each dataset
 base_ps['f_ts_str'] = 'f_brain_rois_1_5_5'
-base_ps['bl_ts_str'] = 'bl_brain_rois_1_5_5_161' #'bl_brain_rois_1_5_5_long'
+base_ps['bl_ts_str'] = 'bl_brain_rois_1_5_5_1001' #'bl_brain_rois_1_5_5_long'
 
 # Parameters for calculating dff
 base_ps['background'] = 100
@@ -103,14 +103,14 @@ base_ps['alpha'] = .05
 base_ps['window_type'] = 'start_locked'  # 'whole_event' or 'start_locked'
 
 # If we are using a window locked to event start or stop, we give the relative offset and window length here
-base_ps['window_offset'] = [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+base_ps['window_offset'] = [-1]
 base_ps['window_length'] = [1, 3]
 
 # Specify if we only consider events where the extracted dff window is entirely contained within the event
 base_ps['enforce_contained_events'] = False
 
 # Specify folder where we should save results
-base_ps['save_folder'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\single_subject\new_bl\brain_only'
+base_ps['save_folder'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\results\single_subject\new_bl\brain_only_1001'
 
 # Specify a string for saving results with - results for each set of parameters will be saved in files with this string
 # and a unique number (generated from the time) appended
