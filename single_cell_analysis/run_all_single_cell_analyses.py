@@ -36,26 +36,24 @@ from keller_zlatic_vnc.utils import form_combinations_from_dict
 base_ps = dict()
 
 # The file specifying which subjects we should include in the analysis
-base_ps['subject_file'] = r'/Volumes/bishoplab/projects/keller_vnc/data/single_cell/subjects.csv'
-
+base_ps['subject_file'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\single_cell\subjects.csv'
 # Location of files provided by Chen containing the raw fluorescence traces for the single cells
-base_ps['trace_base_folder'] = r'/Volumes/bishoplab/projects/keller_vnc/data/single_cell/single_cell_traces'
+base_ps['trace_base_folder'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\single_cell\single_cell_traces'
 base_ps['a00c_trace_folder'] = 'A00c'
 base_ps['basin_trace_folder'] = 'Basin'
 base_ps['handle_trace_folder'] = 'Handle'
 
 # Location of folders containing annotations
-base_ps['a4_annot_folder'] = r'/Volumes/bishoplab/projects/keller_vnc/data/full_annotations/behavior_csv_cl_A4'
-base_ps['a9_annot_folder'] = r'/Volumes/bishoplab/projects/keller_vnc/data/full_annotations/behavior_csv_cl_A9'
+base_ps['a4_annot_folder'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\full_annotations/behavior_csv_cl_A4'
+base_ps['a9_annot_folder'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\full_annotations/behavior_csv_cl_A9'
 
 # Location of file containing Chen's annotations - we use this to filter down to only good stimulus events
-base_ps['chen_file'] = r'/Volumes/bishoplab/projects/keller_vnc/data/extracted_dff_v2/transition_list_CW_11202021.xlsx'
+base_ps['chen_file'] = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\extracted_dff_v2\transition_list_CW_11202021.xlsx'
 
 # Specify the type of neurons we analyze
-base_ps['cell_type'] = ['basin']  # 'a00c' 'handle', 'basin'
+base_ps['cell_type'] = ['a00c']  # 'a00c' 'handle', 'basin'
 
-# Specfy the cell ids we analyze as a list. If None, we analyze all cell ids
-
+# Specify the cell ids we analyze as a list. If None, we analyze all cell ids
 
 # a00c
 if base_ps['cell_type'][0] == 'a00c':
@@ -98,17 +96,17 @@ if base_ps['cell_type'][0] == 'handle':
                            ['ds', 'SEG']]
 
 # Specify the manipulation target for subjects we want to analyze, None indicates both A4 and A9
-base_ps['man_tgt'] = [None, 'A4', 'A9']
+base_ps['man_tgt'] = [None] #[None, 'A4', 'A9']
 
 # Say if we should pool preceeding and succeeding turns
-base_ps['pool_turns'] = [True, False]
+base_ps['pool_turns'] = [True] #[True, False]
 
 # Parameters for declaring preceeding and succeeding quiet behaviors
 base_ps['pre_q_th'] = 50
 base_ps['succ_q_th'] = 9
 
-# Parameters for determing the location of the marked preceeding and succeeding quiet events
-base_ps['pre_q_event_l'] = 3 # Event length for the preceeding quiet event
+# Parameters for determining the location of the marked preceding and succeeding quiet events
+base_ps['pre_q_event_l'] = 3 # Event length for the preceding quiet event
 base_ps['succ_q_event_l'] = 3 # Event length for the succeeding quiet event
 
 # Specify which behaviors we are willing to include in the analysis - b/c we have to see each behavior in
@@ -119,11 +117,11 @@ base_ps['behs'] = ['ds', 'Q', 'TC', 'TL', 'TR',  'B', 'F', 'H']
 # Specify the reference behavior
 base_ps['ref_beh'] = 'Q'
 
-# Specify the minimum number of subjects we have to see preceeding and succeeding behaviors in to include in the
+# Specify the minimum number of subjects we have to see preceding and succeeding behaviors in to include in the
 # analysis
 base_ps['min_n_pre_subjs'] = 3
 
-# Specify the minimum number of subjects we have to see preceeding and succeeding behaviors in to include in the
+# Specify the minimum number of subjects we have to see preceding and succeeding behaviors in to include in the
 # analysis
 base_ps['min_n_succ_subjs'] = 3
 
@@ -139,7 +137,7 @@ base_ps['dff_calc_params'] = dict()
 base_ps['dff_calc_params']['background'] = 100
 base_ps['dff_calc_params']['ep'] = 20
 
-# The test type we want to peform
+# The test type we want to perform
 base_ps['test_type'] = ['prediction_dependence',
                         'decision_dependence',
                         'state_dependence',
@@ -153,7 +151,7 @@ base_ps['ind_alpha'] = .05
 base_ps['mc_alpha'] = .05
 
 # The folder where we should save results
-save_loc = '/Volumes/bishoplab/projects/keller_vnc/results/single_cell/publication_results/basin'
+save_loc = r'Z:\Exchange\Will\bishoplab\projects\keller_drive\keller_vnc\data\single_cell\12_24_single_cell_traces\run_1'
 save_pdf_name = 'all_tests.pdf'
 
 # ======================================================================================================================
@@ -215,7 +213,7 @@ a4_file_paths = glob.glob(str(Path(base_ps['a4_annot_folder']) / '*.csv'))
 a9_file_paths = glob.glob(str(Path(base_ps['a9_annot_folder']) / '*.csv'))
 
 n_annot_files = len(a4_file_paths) + len(a9_file_paths)
-a4_files = np.zeros(n_annot_files, dtype=np.bool)
+a4_files = np.zeros(n_annot_files, dtype=bool)
 a4_files[0:len(a4_file_paths)] = True
 
 annot_file_paths = a4_file_paths + a9_file_paths
@@ -251,7 +249,7 @@ for subj in list(data['subject_id'].unique()):
     subj_events = subj_events.append(stim_annots, ignore_index=True)
 
 # ======================================================================================================================
-# Get rid of any events where we could not classify the type of preceeding or succeeding behavior
+# Get rid of any events where we could not classify the type of preceding or succeeding behavior
 # ======================================================================================================================
 subj_events = subj_events.dropna()
 
